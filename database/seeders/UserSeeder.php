@@ -16,8 +16,8 @@ class UserSeeder extends Seeder
     'password' => Hash::make('password'),
 ]);
 
-$admin->assignRole('admin');
-$admin->role = 'admin';
+$admin->assignRole('Admin');
+$admin->role = 'Admin';
 $admin->save();
 
     }
