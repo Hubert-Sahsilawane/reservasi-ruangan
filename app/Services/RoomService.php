@@ -31,6 +31,16 @@ class RoomService
     public function delete($id)
     {
         $room = Room::findOrFail($id);
+
+        // Cek apakah masih ada reservasi aktif
+        $activeReservation = $room->reservations()
+            ->where('status', 'aktif')
+            ->exists();
+
+        if ($activeReservation) {
+            throw new \Exception("Ruangan tidak bisa dihapus karena masih ada reservasi aktif.");
+        }
+
         $room->delete();
     }
 }

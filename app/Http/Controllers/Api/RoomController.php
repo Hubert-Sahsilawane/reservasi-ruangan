@@ -41,7 +41,14 @@ class RoomController extends Controller
 
     public function destroy($id)
     {
-        $this->roomService->delete($id);
-        return response()->json(['message' => 'Room deleted successfully']);
+        try {
+            $this->roomService->delete($id);
+            return response()->json(['message' => 'Room deleted successfully']);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 400); // Bad request
+        }
     }
+
 }
