@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\RoomRequest;
 use App\Http\Resources\RoomResource;
 use App\Services\RoomService;
+use Illuminate\Validation\ValidationException;
 
 class RoomController extends Controller
 {
@@ -44,11 +45,14 @@ class RoomController extends Controller
         try {
             $this->roomService->delete($id);
             return response()->json(['message' => 'Room deleted successfully']);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => $e->getMessage()
-            ], 400); // Bad request
+            ], 400);
         }
     }
-
 }

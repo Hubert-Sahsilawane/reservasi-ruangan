@@ -2,38 +2,39 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Reservation extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
-        'room_id',
-        'tanggal',
-        'waktu_mulai',
-        'waktu_selesai',
-        'status',
+        'user_id', 'room_id', 'start_time', 'end_time', 'status', 'note'
     ];
 
-    // Relasi ke User (setiap reservasi dibuat oleh seorang user)
+    protected $casts = [
+        'start_time' => 'datetime',
+        'end_time'   => 'datetime',
+    ];
+
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(\App\Models\User::class);
     }
 
-    // Relasi ke Room (setiap reservasi untuk satu ruangan)
     public function room()
     {
-        return $this->belongsTo(Room::class);
+        return $this->belongsTo(\App\Models\Room::class);
     }
 
-    // Jika reservasi terkait dengan fixed schedule tertentu
-public function fixedSchedule()
-{
-    return $this->belongsTo(FixedSchedule::class, 'fixed_schedule_id');
-}
-
+    // scope untuk mencari overlap
+    public function scopeOverlapping($query, $roomId, $start, $end)
+    {
+        return $query->where('room_id', $roomId)
+            ->where(function($q) use ($start, $end) {
+                $q->where('start_time', '<', $end)
+                  ->where('end_time', '>', $start);
+            });
+    }
 }

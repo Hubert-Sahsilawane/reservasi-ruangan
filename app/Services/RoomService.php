@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Room;
+use Illuminate\Validation\ValidationException;
 
 class RoomService
 {
@@ -29,18 +30,23 @@ class RoomService
     }
 
     public function delete($id)
-    {
-        $room = Room::findOrFail($id);
+{
+    $room = Room::findOrFail($id);
 
-        // Cek apakah masih ada reservasi aktif
-        $activeReservation = $room->reservations()
-            ->where('status', 'aktif')
-            ->exists();
+    // cek reservasi aktif (pending/approved)
+    $activeReservation = $room->reservations()
+        ->whereIn('status', ['pending', 'approved'])
+        ->exists();
 
-        if ($activeReservation) {
-            throw new \Exception("Ruangan tidak bisa dihapus karena masih ada reservasi aktif.");
-        }
+    // cek apakah ada fixed schedule aktif
+    $hasFixedSchedule = $room->fixedSchedules()->exists();
 
-        $room->delete();
+    if ($activeReservation || $hasFixedSchedule) {
+        throw ValidationException::withMessages([
+            'room' => 'Ruangan tidak bisa dihapus karena masih memiliki reservasi aktif atau jadwal tetap.'
+        ]);
     }
+
+    return $room->delete();
+}
 }

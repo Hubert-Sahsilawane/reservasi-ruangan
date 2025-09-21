@@ -43,4 +43,17 @@ class ReservationController extends Controller
         $this->reservationService->delete($id);
         return response()->json(['message' => 'Reservation deleted successfully']);
     }
+
+        public function approve($id)
+    {
+        $reservation = $this->reservationService->approve($id);
+        return new ReservationResource($reservation);
+    }
+
+    public function reject($id)
+    {
+        $reservation = $this->reservationService->reject($id);
+        return new ReservationResource($reservation);
+    }
+
 }

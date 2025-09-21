@@ -1,58 +1,59 @@
 <?php
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
 use App\Http\Controllers\Api\Auth\LoginController;
 use App\Http\Controllers\Api\Auth\RegisterController;
 use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\FixedScheduleController;
 use App\Http\Controllers\Api\User\UserController;
+use App\Http\Controllers\Api\Admin\AdminReservationController;
 
-// Auth routes
-Route::post('/login', [LoginController::class, 'login'])->name('Login');
-Route::post('/register', [RegisterController::class, 'register'])->name('Register');
+/**
+ * ===============================
+ * AUTH ROUTES (Public)
+ * ===============================
+ */
+Route::post('/login', [LoginController::class, 'login'])->name('auth.login');
+Route::post('/register', [RegisterController::class, 'register'])->name('auth.register');
 
 Route::middleware('auth:api')->group(function () {
-
-    Route::get('/user', function (Request $request) {
+    Route::get('/me', function (Request $request) {
         return $request->user();
-    })->name('Me');
+    })->name('auth.me');
 
     /**
-     * Admin-only routes
+     * ===============================
+     * ADMIN ROUTES
+     * ===============================
      */
-    Route::middleware('role:admin')->group(function () {
-        // Manage Rooms (CRUD)
-        Route::get('/rooms', [RoomController::class, 'index'])->name('rooms.index');
-        Route::post('/rooms', [RoomController::class, 'store'])->name('rooms.store');
-        Route::get('/rooms/{id}', [RoomController::class, 'show'])->name('rooms.show');
-        Route::put('/rooms/{id}', [RoomController::class, 'update'])->name('rooms.update');
-        Route::delete('/rooms/{id}', [RoomController::class, 'destroy'])->name('rooms.destroy');
+    Route::middleware('role:admin')->prefix('admin')->group(function () {
+        // Rooms Management
+        Route::apiResource('rooms', RoomController::class);
 
-        // Manage FixedSchedules
-        Route::get('/fixed-schedules', [FixedScheduleController::class, 'index'])->name('fixedSchedules.index');
-        Route::post('/fixed-schedules', [FixedScheduleController::class, 'store'])->name('fixedSchedules.store');
-        Route::get('/fixed-schedules/{id}', [FixedScheduleController::class, 'show'])->name('fixedSchedules.show');
-        Route::put('/fixed-schedules/{id}', [FixedScheduleController::class, 'update'])->name('fixedSchedules.update');
-        Route::delete('/fixed-schedules/{id}', [FixedScheduleController::class, 'destroy'])->name('fixedSchedules.destroy');
+        // Fixed Schedules Management
+        Route::apiResource('fixed-schedules', FixedScheduleController::class);
 
-        Route::get('/users', [UserController::class, 'index']);
-        Route::post('/users', [UserController::class, 'store']);
-        Route::get('/users/{id}', [UserController::class, 'show']);
-        Route::put('/users/{id}', [UserController::class, 'update']);
-        Route::delete('/users/{id}', [UserController::class, 'destroy']);
+        // Users Management
+        Route::apiResource('users', UserController::class);
+
+        // Reservation Approval (khusus admin)
+        Route::get('reservations/pending', [AdminReservationController::class, 'indexPending']);
+        Route::put('reservations/{id}/approve', [AdminReservationController::class, 'approve'])
+            ->name('admin.reservations.approve');
+        Route::put('reservations/{id}/reject', [AdminReservationController::class, 'reject'])
+            ->name('admin.reservations.reject');
     });
 
     /**
-     * Karyawan routes
+     * ===============================
+     * KARYAWAN ROUTES
+     * ===============================
      */
-    Route::middleware('role:karyawan')->group(function () {
-        // Reservation akses untuk karyawan
-        Route::get('/reservations', [ReservationController::class, 'index'])->name('reservations.index');
-        Route::post('/reservations', [ReservationController::class, 'store'])->name('reservations.store');
-        Route::get('/reservations/{id}', [ReservationController::class, 'show'])->name('reservations.show');
-        Route::put('/reservations/{id}', [ReservationController::class, 'update'])->name('reservations.update');
-        Route::delete('/reservations/{id}', [ReservationController::class, 'destroy'])->name('reservations.destroy');
+    Route::middleware('role:karyawan')->prefix('karyawan')->group(function () {
+        // Reservations (buat & kelola milik sendiri)
+        Route::apiResource('reservations', ReservationController::class)
+            ->only(['index', 'store', 'show', 'update', 'destroy']);
     });
 });
