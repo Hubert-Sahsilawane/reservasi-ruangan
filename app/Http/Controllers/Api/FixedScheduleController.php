@@ -1,6 +1,7 @@
 <?php
-namespace App\Http\Controllers;
+namespace App\Http\Controller\Api;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreFixedScheduleRequest;
 use App\Http\Requests\UpdateFixedScheduleRequest;
 use App\Http\Resources\FixedScheduleResource;
