@@ -1,13 +1,11 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreReservationRequest;
-use App\Http\Requests\UpdateReservationRequest;
+use App\Http\Requests\ReservationRequest;
 use App\Http\Resources\ReservationResource;
-use App\Models\Reservation;
 use App\Services\ReservationService;
-use Illuminate\Support\Facades\Auth;
 
 class ReservationController extends Controller
 {
@@ -20,31 +18,29 @@ class ReservationController extends Controller
 
     public function index()
     {
-        $reservations = $this->reservationService->getAll();
-        return ReservationResource::collection($reservations);
+        return ReservationResource::collection($this->reservationService->getAll());
     }
 
-    public function store(StoreReservationRequest $request)
+    public function store(ReservationRequest $request)
     {
-        $reservation = $this->reservationService->create($request->validated(), Auth::id());
+        $reservation = $this->reservationService->create($request->validated());
         return new ReservationResource($reservation);
     }
 
-    public function show(Reservation $reservation)
+    public function show($id)
     {
-        $reservation = $this->reservationService->getById($reservation);
+        return new ReservationResource($this->reservationService->find($id));
+    }
+
+    public function update(ReservationRequest $request, $id)
+    {
+        $reservation = $this->reservationService->update($id, $request->validated());
         return new ReservationResource($reservation);
     }
 
-    public function update(UpdateReservationRequest $request, Reservation $reservation)
+    public function destroy($id)
     {
-        $reservation = $this->reservationService->update($reservation, $request->validated());
-        return new ReservationResource($reservation);
-    }
-
-    public function destroy(Reservation $reservation)
-    {
-        $this->reservationService->delete($reservation);
-        return response()->json(null, 204);
+        $this->reservationService->delete($id);
+        return response()->json(['message' => 'Reservation deleted successfully']);
     }
 }

@@ -2,18 +2,22 @@
 
 namespace App\Http\Resources;
 
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\ReservationResource;
+use App\Http\Resources\FixedScheduleResource;
 
 class RoomResource extends JsonResource
 {
     public function toArray($request): array
     {
         return [
-            'id'       => $this->id,
-            'name'     => $this->name,
-            'capacity' => $this->capacity,
-            'created_at' => $this->created_at?->toDateTimeString(),
+            'id' => $this->id,
+            'nama_ruangan' => $this->nama_ruangan,
+            'kapasitas' => $this->kapasitas,
+            'deskripsi' => $this->deskripsi,
+            'status' => $this->status,
+            'reservations' => ReservationResource::collection($this->whenLoaded('reservations')),
+            'fixed_schedules' => FixedScheduleResource::collection($this->whenLoaded('fixedSchedules')),
         ];
     }
 }

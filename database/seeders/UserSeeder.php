@@ -10,16 +10,17 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-    $admin = User::create([
-    'name' => 'Admin Utama',
-    'email' => 'admin@example.com',
-    'password' => Hash::make('password'),
-]);
+        $admin = User::create([
+            'name' => 'Admin Utama',
+            'email' => 'admin@example.com',
+            'password' => Hash::make('password'),
+        ]);
 
-$admin->assignRole('Admin');
-$admin->role = 'Admin';
-$admin->save();
+        // assign role admin (spatie)
+        $admin->assignRole('admin');
 
+        // simpan juga di kolom users.role supaya sinkron
+        $admin->role = 'admin';
+        $admin->save();
     }
 }
-

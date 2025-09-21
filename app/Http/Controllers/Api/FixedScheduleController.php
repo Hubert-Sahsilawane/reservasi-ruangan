@@ -1,11 +1,10 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreFixedScheduleRequest;
-use App\Http\Requests\UpdateFixedScheduleRequest;
+use App\Http\Requests\FixedScheduleRequest;
 use App\Http\Resources\FixedScheduleResource;
-use App\Models\FixedSchedule;
 use App\Services\FixedScheduleService;
 
 class FixedScheduleController extends Controller
@@ -19,31 +18,29 @@ class FixedScheduleController extends Controller
 
     public function index()
     {
-        $schedules = $this->fixedScheduleService->getAll();
-        return FixedScheduleResource::collection($schedules);
+        return FixedScheduleResource::collection($this->fixedScheduleService->getAll());
     }
 
-    public function store(StoreFixedScheduleRequest $request)
+    public function store(FixedScheduleRequest $request)
     {
         $schedule = $this->fixedScheduleService->create($request->validated());
         return new FixedScheduleResource($schedule);
     }
 
-    public function show(FixedSchedule $fixedSchedule)
+    public function show($id)
     {
-        $schedule = $this->fixedScheduleService->getById($fixedSchedule);
+        return new FixedScheduleResource($this->fixedScheduleService->find($id));
+    }
+
+    public function update(FixedScheduleRequest $request, $id)
+    {
+        $schedule = $this->fixedScheduleService->update($id, $request->validated());
         return new FixedScheduleResource($schedule);
     }
 
-    public function update(UpdateFixedScheduleRequest $request, FixedSchedule $fixedSchedule)
+    public function destroy($id)
     {
-        $schedule = $this->fixedScheduleService->update($fixedSchedule, $request->validated());
-        return new FixedScheduleResource($schedule);
-    }
-
-    public function destroy(FixedSchedule $fixedSchedule)
-    {
-        $this->fixedScheduleService->delete($fixedSchedule);
-        return response()->json(null, 204);
+        $this->fixedScheduleService->delete($id);
+        return response()->json(['message' => 'FixedSchedule deleted successfully']);
     }
 }

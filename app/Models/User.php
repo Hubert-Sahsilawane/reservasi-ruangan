@@ -51,4 +51,10 @@ class User extends Authenticatable implements OAuthenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function reservations()
+{
+    return $this->hasMany(Reservation::class);
+}
+
 }

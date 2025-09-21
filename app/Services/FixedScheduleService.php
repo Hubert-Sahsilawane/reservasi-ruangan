@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use App\Models\FixedSchedule;
@@ -10,24 +11,26 @@ class FixedScheduleService
         return FixedSchedule::with('room')->get();
     }
 
-    public function create(array $data): FixedSchedule
+    public function find($id)
+    {
+        return FixedSchedule::with('room')->findOrFail($id);
+    }
+
+    public function create(array $data)
     {
         return FixedSchedule::create($data);
     }
 
-    public function getById(FixedSchedule $fixedSchedule): FixedSchedule
+    public function update($id, array $data)
     {
-        return $fixedSchedule->load('room');
+        $schedule = FixedSchedule::findOrFail($id);
+        $schedule->update($data);
+        return $schedule;
     }
 
-    public function update(FixedSchedule $fixedSchedule, array $data): FixedSchedule
+    public function delete($id)
     {
-        $fixedSchedule->update($data);
-        return $fixedSchedule->load('room');
-    }
-
-    public function delete(FixedSchedule $fixedSchedule): bool
-    {
-        return $fixedSchedule->delete();
+        $schedule = FixedSchedule::findOrFail($id);
+        $schedule->delete();
     }
 }

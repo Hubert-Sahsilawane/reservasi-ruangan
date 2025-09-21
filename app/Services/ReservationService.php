@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use App\Models\Reservation;
@@ -7,28 +8,29 @@ class ReservationService
 {
     public function getAll()
     {
-        return Reservation::with(['room', 'user'])->get();
+        return Reservation::with(['user', 'room'])->get();
     }
 
-    public function create(array $data, $userId): Reservation
+    public function find($id)
     {
-        $data['user_id'] = $userId;
+        return Reservation::with(['user', 'room'])->findOrFail($id);
+    }
+
+    public function create(array $data)
+    {
         return Reservation::create($data);
     }
 
-    public function getById(Reservation $reservation): Reservation
+    public function update($id, array $data)
     {
-        return $reservation->load(['room', 'user']);
-    }
-
-    public function update(Reservation $reservation, array $data): Reservation
-    {
+        $reservation = Reservation::findOrFail($id);
         $reservation->update($data);
-        return $reservation->load(['room', 'user']);
+        return $reservation;
     }
 
-    public function delete(Reservation $reservation): bool
+    public function delete($id)
     {
-        return $reservation->delete();
+        $reservation = Reservation::findOrFail($id);
+        $reservation->delete();
     }
 }

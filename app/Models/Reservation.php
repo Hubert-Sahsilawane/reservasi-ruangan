@@ -29,4 +29,11 @@ class Reservation extends Model
     {
         return $this->belongsTo(Room::class);
     }
+
+    // Jika reservasi terkait dengan fixed schedule tertentu
+public function fixedSchedule()
+{
+    return $this->belongsTo(FixedSchedule::class, 'fixed_schedule_id');
+}
+
 }

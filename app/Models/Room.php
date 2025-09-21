@@ -27,4 +27,13 @@ class Room extends Model
     {
         return $this->hasMany(FixedSchedule::class);
     }
+
+    // Semua user yang pernah booking ruangan ini
+public function users()
+{
+    return $this->belongsToMany(User::class, 'reservations')
+                ->withPivot(['tanggal', 'waktu_mulai', 'waktu_selesai', 'status'])
+                ->withTimestamps();
+}
+
 }

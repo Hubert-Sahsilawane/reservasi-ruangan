@@ -2,26 +2,22 @@
 
 namespace App\Http\Resources;
 
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\User\UserResource;
+use App\Http\Resources\RoomResource;
 
 class ReservationResource extends JsonResource
 {
     public function toArray($request): array
     {
         return [
-            'id'         => $this->id,
-            'room'       => [
-                'id'   => $this->room->id,
-                'name' => $this->room->name,
-            ],
-            'user'       => [
-                'id'   => $this->user->id,
-                'name' => $this->user->name,
-            ],
-            'start_time' => $this->start_time->toDateTimeString(),
-            'end_time'   => $this->end_time->toDateTimeString(),
-            'status'     => $this->status,
+            'id' => $this->id,
+            'user' => new UserResource($this->whenLoaded('user')),
+            'room' => new RoomResource($this->whenLoaded('room')),
+            'tanggal' => $this->tanggal,
+            'waktu_mulai' => $this->waktu_mulai,
+            'waktu_selesai' => $this->waktu_selesai,
+            'status' => $this->status,
         ];
     }
 }

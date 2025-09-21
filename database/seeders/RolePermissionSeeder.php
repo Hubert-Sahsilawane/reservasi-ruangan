@@ -15,12 +15,11 @@ class RolePermissionSeeder extends Seeder
         Permission::create(['name' => 'view rooms']);
 
         // role admin
-        $admin = Role::create(['name' => 'admin']);
-        $admin->givePermissionTo(['manage reservations', 'view rooms']);
+        $adminRole = Role::create(['name' => 'admin']);
+        $adminRole->givePermissionTo(['manage reservations', 'view rooms']);
 
         // role karyawan
-        $karyawan = Role::create(['name' => 'karyawan']);
-        $karyawan->givePermissionTo(['view rooms']);
+        $karyawanRole = Role::create(['name' => 'karyawan']);
+        $karyawanRole->givePermissionTo(['view rooms']);
     }
 }
-

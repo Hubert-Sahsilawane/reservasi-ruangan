@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Auth\RegisterController;
 use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\FixedScheduleController;
+use App\Http\Controllers\Api\User\UserController;
 
 // Auth routes
 Route::post('/login', [LoginController::class, 'login'])->name('Login');
@@ -21,7 +22,7 @@ Route::middleware('auth:api')->group(function () {
     /**
      * Admin-only routes
      */
-    Route::middleware('role:Admin')->group(function () {
+    Route::middleware('role:admin')->group(function () {
         // Manage Rooms (CRUD)
         Route::get('/rooms', [RoomController::class, 'index'])->name('rooms.index');
         Route::post('/rooms', [RoomController::class, 'store'])->name('rooms.store');
@@ -35,12 +36,18 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/fixed-schedules/{id}', [FixedScheduleController::class, 'show'])->name('fixedSchedules.show');
         Route::put('/fixed-schedules/{id}', [FixedScheduleController::class, 'update'])->name('fixedSchedules.update');
         Route::delete('/fixed-schedules/{id}', [FixedScheduleController::class, 'destroy'])->name('fixedSchedules.destroy');
+
+        Route::get('/users', [UserController::class, 'index']);
+        Route::post('/users', [UserController::class, 'store']);
+        Route::get('/users/{id}', [UserController::class, 'show']);
+        Route::put('/users/{id}', [UserController::class, 'update']);
+        Route::delete('/users/{id}', [UserController::class, 'destroy']);
     });
 
     /**
      * Karyawan routes
      */
-    Route::middleware('role:Karyawan')->group(function () {
+    Route::middleware('role:karyawan')->group(function () {
         // Reservation akses untuk karyawan
         Route::get('/reservations', [ReservationController::class, 'index'])->name('reservations.index');
         Route::post('/reservations', [ReservationController::class, 'store'])->name('reservations.store');

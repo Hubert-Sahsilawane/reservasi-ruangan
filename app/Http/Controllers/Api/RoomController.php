@@ -1,11 +1,10 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreRoomRequest;
-use App\Http\Requests\UpdateRoomRequest;
+use App\Http\Requests\RoomRequest;
 use App\Http\Resources\RoomResource;
-use App\Models\Room;
 use App\Services\RoomService;
 
 class RoomController extends Controller
@@ -19,31 +18,30 @@ class RoomController extends Controller
 
     public function index()
     {
-        $rooms = $this->roomService->getAll();
-        return RoomResource::collection($rooms);
+        return RoomResource::collection($this->roomService->getAll());
     }
 
-    public function store(StoreRoomRequest $request)
+    public function store(RoomRequest $request)
     {
         $room = $this->roomService->create($request->validated());
         return new RoomResource($room);
     }
 
-    public function show(Room $room)
+    public function show($id)
     {
-        $room = $this->roomService->getById($room);
+        $room = $this->roomService->find($id);
         return new RoomResource($room);
     }
 
-    public function update(UpdateRoomRequest $request, Room $room)
+    public function update(RoomRequest $request, $id)
     {
-        $room = $this->roomService->update($room, $request->validated());
+        $room = $this->roomService->update($id, $request->validated());
         return new RoomResource($room);
     }
 
-    public function destroy(Room $room)
+    public function destroy($id)
     {
-        $this->roomService->delete($room);
-        return response()->json(null, 204);
+        $this->roomService->delete($id);
+        return response()->json(['message' => 'Room deleted successfully']);
     }
 }

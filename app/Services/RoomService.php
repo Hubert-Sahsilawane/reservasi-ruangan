@@ -8,27 +8,29 @@ class RoomService
 {
     public function getAll()
     {
-        return Room::all();
+        return Room::with(['reservations', 'fixedSchedules'])->get();
     }
 
-    public function create(array $data): Room
+    public function find($id)
+    {
+        return Room::with(['reservations.user', 'fixedSchedules'])->findOrFail($id);
+    }
+
+    public function create(array $data)
     {
         return Room::create($data);
     }
 
-    public function getById(Room $room): Room
+    public function update($id, array $data)
     {
-        return $room;
-    }
-
-    public function update(Room $room, array $data): Room
-    {
+        $room = Room::findOrFail($id);
         $room->update($data);
         return $room;
     }
 
-    public function delete(Room $room): bool
+    public function delete($id)
     {
-        return $room->delete();
+        $room = Room::findOrFail($id);
+        $room->delete();
     }
 }
