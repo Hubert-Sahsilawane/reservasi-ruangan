@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\Auth\LoginController;
 use App\Http\Controllers\Api\Auth\RegisterController;
+use App\Http\Controllers\Api\Auth\LogoutController;
+use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\FixedScheduleController;
@@ -19,9 +21,9 @@ Route::post('/login', [LoginController::class, 'login'])->name('auth.login');
 Route::post('/register', [RegisterController::class, 'register'])->name('auth.register');
 
 Route::middleware('auth:api')->group(function () {
-    Route::get('/me', function (Request $request) {
-        return $request->user();
-    })->name('auth.me');
+   Route::get('/profile', [ProfileController::class, 'profile'])->name('Profile');
+    Route::put('/profile', [ProfileController::class, 'updateProfile'])->name('UpdateProfile');
+    Route::post('/logout', [LogoutController::class, 'logout'])->name('Logout');
 
     /**
      * ===============================

@@ -10,12 +10,12 @@ class Reservation extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'room_id', 'start_time', 'end_time', 'status', 'note'
+        'user_id', 'room_id', 'wakttu_mulai', 'waktu_selesai', 'status', 'note'
     ];
 
     protected $casts = [
-        'start_time' => 'datetime',
-        'end_time'   => 'datetime',
+        'waktu_mulai' => 'datetime',
+        'waktu_selesai'   => 'datetime',
     ];
 
     public function user()
@@ -33,8 +33,8 @@ class Reservation extends Model
     {
         return $query->where('room_id', $roomId)
             ->where(function($q) use ($start, $end) {
-                $q->where('start_time', '<', $end)
-                  ->where('end_time', '>', $start);
+                $q->where('waktu_mulai', '<', $end)
+                  ->where('waktu_selesai', '>', $start);
             });
     }
 }
