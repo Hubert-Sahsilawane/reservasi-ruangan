@@ -1,5 +1,5 @@
 <?php
-use Illuminate\Http\Request;
+
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\Auth\LoginController;
@@ -7,10 +7,10 @@ use App\Http\Controllers\Api\Auth\RegisterController;
 use App\Http\Controllers\Api\Auth\LogoutController;
 use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\RoomController;
-use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\FixedScheduleController;
 use App\Http\Controllers\Api\User\UserController;
-use App\Http\Controllers\Api\Admin\AdminReservationController;
+use App\Http\Controllers\Api\Admin\ReservationController as AdminReservationController;
+use App\Http\Controllers\Api\Karyawan\ReservationController as KaryawanReservationController;
 
 /**
  * ===============================
@@ -21,9 +21,9 @@ Route::post('/login', [LoginController::class, 'login'])->name('auth.login');
 Route::post('/register', [RegisterController::class, 'register'])->name('auth.register');
 
 Route::middleware('auth:api')->group(function () {
-   Route::get('/profile', [ProfileController::class, 'profile'])->name('Profile');
-    Route::put('/profile', [ProfileController::class, 'updateProfile'])->name('UpdateProfile');
-    Route::post('/logout', [LogoutController::class, 'logout'])->name('Logout');
+    Route::get('/profile', [ProfileController::class, 'profile'])->name('profile');
+    Route::put('/profile', [ProfileController::class, 'updateProfile'])->name('profile.update');
+    Route::post('/logout', [LogoutController::class, 'logout'])->name('logout');
 
     /**
      * ===============================
@@ -40,12 +40,11 @@ Route::middleware('auth:api')->group(function () {
         // Users Management
         Route::apiResource('users', UserController::class);
 
-        // Reservation Approval (khusus admin)
-        Route::get('reservations/pending', [AdminReservationController::class, 'indexPending']);
-        Route::put('reservations/{id}/approve', [AdminReservationController::class, 'approve'])
-            ->name('admin.reservations.approve');
-        Route::put('reservations/{id}/reject', [AdminReservationController::class, 'reject'])
-            ->name('admin.reservations.reject');
+        // Reservations Management (Admin full kontrol)
+        Route::get('reservations', [AdminReservationController::class, 'index'])->name('admin.reservations.index');
+        Route::put('reservations/{id}/approve', [AdminReservationController::class, 'approve'])->name('admin.reservations.approve');
+        Route::put('reservations/{id}/reject', [AdminReservationController::class, 'reject'])->name('admin.reservations.reject');
+        Route::delete('reservations/{id}', [AdminReservationController::class, 'destroy'])->name('admin.reservations.destroy');
     });
 
     /**
@@ -54,8 +53,8 @@ Route::middleware('auth:api')->group(function () {
      * ===============================
      */
     Route::middleware('role:karyawan')->prefix('karyawan')->group(function () {
-        // Reservations (buat & kelola milik sendiri)
-        Route::apiResource('reservations', ReservationController::class)
-            ->only(['index', 'store', 'show', 'update', 'destroy']);
+        // Reservations (hanya punya sendiri)
+        Route::get('reservations', [KaryawanReservationController::class, 'index'])->name('karyawan.reservations.index');
+        Route::post('reservations', [KaryawanReservationController::class, 'store'])->name('karyawan.reservations.store');
     });
 });
