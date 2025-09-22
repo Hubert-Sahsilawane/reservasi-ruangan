@@ -30,23 +30,23 @@ class RoomService
     }
 
     public function delete($id)
-{
-    $room = Room::findOrFail($id);
+    {
+        $room = Room::findOrFail($id);
 
-    // cek reservasi aktif (pending/approved)
-    $activeReservation = $room->reservations()
-        ->whereIn('status', ['pending', 'approved'])
-        ->exists();
+        // cek reservasi aktif (pending/approved)
+        $activeReservation = $room->reservations()
+            ->whereIn('status', ['pending', 'approved'])
+            ->exists();
 
-    // cek apakah ada fixed schedule aktif
-    $hasFixedSchedule = $room->fixedSchedules()->exists();
+        // cek fixed schedule aktif
+        $hasFixedSchedule = $room->fixedSchedules()->exists();
 
-    if ($activeReservation || $hasFixedSchedule) {
-        throw ValidationException::withMessages([
-            'room' => 'Ruangan tidak bisa dihapus karena masih memiliki reservasi aktif atau jadwal tetap.'
-        ]);
+        if ($activeReservation || $hasFixedSchedule) {
+            throw ValidationException::withMessages([
+                'room' => 'Ruangan tidak bisa dihapus karena masih memiliki reservasi aktif atau jadwal tetap.'
+            ]);
+        }
+
+        return $room->delete();
     }
-
-    return $room->delete();
-}
 }

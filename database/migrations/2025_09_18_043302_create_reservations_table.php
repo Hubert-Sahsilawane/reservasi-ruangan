@@ -12,8 +12,9 @@ class CreateReservationsTable extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('room_id')->constrained()->onDelete('cascade');
-            $table->dateTime('waktu_mulai');
-            $table->dateTime('waktu_selesai');
+            $table->date('tanggal');
+            $table->string('waktu_mulai');
+            $table->string('waktu_selesai');
             $table->enum('status', ['pending', 'approved', 'rejected', 'canceled'])->default('pending');
             $table->text('keterangan')->nullable();
             $table->timestamps();

@@ -24,15 +24,17 @@ class ReservationController extends Controller
     }
 
     public function store(ReservationStoreRequest $request)
-    {
-        $reservation = $this->service->create([
-            'user_id'       => Auth::id(),
-            'room_id'       => $request->room_id,
-            'waktu_mulai'   => $request->waktu_mulai,
-            'waktu_selesai' => $request->waktu_selesai,
-            'keterangan'    => $request->keterangan,
-        ]);
+{
+    $reservation = $this->service->create([
+        'user_id'       => Auth::id(),
+        'room_id'       => $request->room_id,
+        'tanggal'       => $request->tanggal,
+        'hari'          => $request->hari,   // ✅ tambahkan
+        'waktu_mulai'   => $request->waktu_mulai,
+        'waktu_selesai' => $request->waktu_selesai,
+        'keterangan'    => $request->keterangan,
+    ]);
 
-        return new ReservationResource($reservation);
-    }
+    return new ReservationResource($reservation);
+}
 }

@@ -16,7 +16,7 @@ return new class extends Migration
         $table->string('nama_ruangan');
         $table->integer('kapasitas');
         $table->text('deskripsi')->nullable();
-        $table->enum('status', ['aktif', 'non-aktif'])->default('aktif');
+        $table->enum('status', ['aktif', 'non-aktif'])->default('non-aktif');
         $table->timestamps();
     });
 }

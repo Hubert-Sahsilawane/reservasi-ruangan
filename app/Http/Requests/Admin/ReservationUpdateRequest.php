@@ -12,9 +12,10 @@ class ReservationUpdateRequest extends FormRequest
     }
 
     public function rules(): array
-    {
-        return [
-            'status' => 'required|in:approved,rejected,canceled',
-        ];
-    }
+{
+    return [
+        'status' => 'required|in:approved,rejected,canceled',
+        'reason' => 'nullable|string|max:255',
+    ];
+}
 }
