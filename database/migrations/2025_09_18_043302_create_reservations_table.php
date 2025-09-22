@@ -15,6 +15,7 @@ class CreateReservationsTable extends Migration
             $table->dateTime('waktu_mulai');
             $table->dateTime('waktu_selesai');
             $table->enum('status', ['pending', 'approved', 'rejected', 'canceled'])->default('pending');
+            $table->text('keterangan')->nullable();
             $table->timestamps();
         });
     }

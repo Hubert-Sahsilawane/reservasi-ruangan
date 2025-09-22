@@ -17,6 +17,7 @@ class ReservationStoreRequest extends FormRequest
             'room_id'       => 'required|exists:rooms,id',
             'waktu_mulai'   => 'required|date|after_or_equal:now',
             'waktu_selesai' => 'required|date|after:waktu_mulai',
+            'keterangan'    => 'nullable|string',
         ];
     }
 }

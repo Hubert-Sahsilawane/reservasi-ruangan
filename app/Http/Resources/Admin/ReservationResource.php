@@ -22,6 +22,7 @@ class ReservationResource extends JsonResource
             'waktu_mulai'   => $this->waktu_mulai,
             'waktu_selesai' => $this->waktu_selesai,
             'status'        => $this->status,
+            'keterangan'    => $this->keterangan,
             'created_at'    => $this->created_at->toDateTimeString(),
             'updated_at'    => $this->updated_at->toDateTimeString(),
         ];

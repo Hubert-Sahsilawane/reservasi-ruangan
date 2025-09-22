@@ -30,6 +30,7 @@ class ReservationController extends Controller
             'room_id'       => $request->room_id,
             'waktu_mulai'   => $request->waktu_mulai,
             'waktu_selesai' => $request->waktu_selesai,
+            'keterangan'    => $request->keterangan,
         ]);
 
         return new ReservationResource($reservation);
