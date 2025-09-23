@@ -11,9 +11,25 @@ use App\Mail\ReservationRejectedMail;
 
 class ReservationController extends Controller
 {
+    /**
+     * Menampilkan semua reservasi (untuk admin).
+     */
+    public function index()
+    {
+        $reservations = Reservation::with(['user','room'])->latest()->get();
+
+        return response()->json([
+            'message' => 'Daftar semua reservasi berhasil diambil.',
+            'data'    => $reservations
+        ]);
+    }
+
+    /**
+     * Setujui reservasi.
+     */
     public function approve($id)
     {
-        $reservation = Reservation::findOrFail($id);
+        $reservation = Reservation::with(['user','room'])->findOrFail($id);
         $reservation->status = 'approved';
         $reservation->save();
 
@@ -26,9 +42,12 @@ class ReservationController extends Controller
         ]);
     }
 
+    /**
+     * Tolak reservasi dengan alasan.
+     */
     public function reject(Request $request, $id)
     {
-        $reservation = Reservation::findOrFail($id);
+        $reservation = Reservation::with(['user','room'])->findOrFail($id);
         $reservation->status = 'rejected';
         $reservation->save();
 
@@ -41,6 +60,19 @@ class ReservationController extends Controller
             'message' => 'Reservasi berhasil ditolak & notifikasi email terkirim.',
             'data'    => $reservation,
             'reason'  => $reason
+        ]);
+    }
+
+    /**
+     * Hapus reservasi.
+     */
+    public function destroy($id)
+    {
+        $reservation = Reservation::findOrFail($id);
+        $reservation->delete();
+
+        return response()->json([
+            'message' => 'Reservasi berhasil dihapus.'
         ]);
     }
 }

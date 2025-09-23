@@ -3,19 +3,30 @@
 namespace App\Http\Resources\Admin;
 
 use Illuminate\Http\Resources\Json\JsonResource;
-use Carbon\Carbon;
 
 class FixedScheduleResource extends JsonResource
 {
     public function toArray($request): array
     {
         return [
-            'id'            => $this->id,
-            'room'          => new RoomResource($this->whenLoaded('room')),
-            'hari'          => $this->hari,
-            'waktu_mulai'   => Carbon::parse($this->waktu_mulai)->format('H:i'),
-            'waktu_selesai' => Carbon::parse($this->waktu_selesai)->format('H:i'),
-            'keterangan'    => $this->keterangan,
+            'id' => $this->id,
+            'user' => [
+                'id' => $this->user->id,
+                'name' => $this->user->name,
+                'email' => $this->user->email,
+            ],
+            'room' => [
+                'id' => $this->room->id,
+                'name' => $this->room->nama_ruangan,
+            ],
+            'tanggal' => $this->tanggal?->format('Y-m-d'),
+            'hari' => $this->hari,
+            'waktu_mulai' => $this->waktu_mulai,
+            'waktu_selesai' => $this->waktu_selesai,
+            'status' => $this->status,
+            'keterangan' => $this->keterangan,
+            'created_at' => $this->created_at->toDateTimeString(),
+            'updated_at' => $this->updated_at->toDateTimeString(),
         ];
     }
 }

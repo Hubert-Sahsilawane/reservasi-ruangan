@@ -1,45 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Reservasi Dibatalkan (Konflik Jadwal)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservasi Dibatalkan</title>
 </head>
-<body style="font-family: Arial, sans-serif; color: #333;">
-    <h2>Halo {{ $reservation->user->name }},</h2>
+<body>
+    <h2>Halo, {{ $reservation->user->name }} 👋</h2>
 
-    <p>
-        Reservasi Anda untuk <strong>{{ $reservation->room->name }}</strong>
-        pada hari <b>{{ $reservation->hari }}</b>:
-    </p>
-
-    <p>
-        <b>
-            {{ \Carbon\Carbon::parse($reservation->tanggal.' '.$reservation->waktu_mulai)->format('d M Y H:i') }}
-        </b>
-        sampai
-        <b>
-            {{ \Carbon\Carbon::parse($reservation->tanggal.' '.$reservation->waktu_selesai)->format('H:i') }}
-        </b>
-    </p>
-
-    <p style="color:orange; font-weight:bold;">
-        Telah DIBATALKAN ⚠️
-    </p>
-
-    <p>
-        Karena terdapat reservasi lain yang sudah disetujui pada waktu yang sama:
-    </p>
+    <p>Reservasi Anda <strong>DIBATALKAN</strong> karena jadwal bentrok ⚠️</p>
 
     <ul>
-        <li>Nama: {{ $approvedReservation->user->name }}</li>
-        <li>Ruangan: {{ $approvedReservation->room->name }}</li>
-        <li>Jadwal:
-            {{ \Carbon\Carbon::parse($approvedReservation->tanggal.' '.$approvedReservation->waktu_mulai)->format('d M Y H:i') }}
-            -
-            {{ \Carbon\Carbon::parse($approvedReservation->tanggal.' '.$approvedReservation->waktu_selesai)->format('H:i') }}
-        </li>
+        <li><strong>Ruangan:</strong> {{ $reservation->room->nama_ruangan }}</li>
+        <li><strong>Tanggal:</strong> {{ $reservation->tanggal->format('d M Y') }} ({{ $reservation->hari }})</li>
+        <li><strong>Waktu:</strong> {{ substr($reservation->waktu_mulai,0,5) }} - {{ substr($reservation->waktu_selesai,0,5) }}</li>
+        <li><strong>Keterangan:</strong> {{ $reservation->keterangan ?? '-' }}</li>
     </ul>
 
-    <p>Silakan ajukan ulang dengan jadwal lain.</p>
+    <p>Silakan pilih jadwal lain agar tidak terjadi bentrok dengan reservasi yang sudah disetujui.</p>
 </body>
 </html>

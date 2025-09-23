@@ -4,65 +4,65 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FixedScheduleRequest;
-use App\Http\Resources\Admin\FixedScheduleResource as AdminFixedScheduleResource;
-use App\Http\Resources\Karyawan\FixedScheduleResource as KaryawanFixedScheduleResource;
+use App\Http\Resources\Admin\FixedScheduleResource as AdminResource;
+use App\Http\Resources\Karyawan\FixedScheduleResource as KaryawanResource;
 use App\Services\FixedScheduleService;
 use Illuminate\Support\Facades\Auth;
 
 class FixedScheduleController extends Controller
 {
-    protected $fixedScheduleService;
+    protected $service;
 
-    public function __construct(FixedScheduleService $fixedScheduleService)
+    public function __construct(FixedScheduleService $service)
     {
-        $this->fixedScheduleService = $fixedScheduleService;
+        $this->service = $service;
     }
 
     public function index()
     {
-        $schedules = $this->fixedScheduleService->getAll();
+        $schedules = $this->service->getAll();
 
         return Auth::user()->hasRole('admin')
-            ? AdminFixedScheduleResource::collection($schedules)
-            : KaryawanFixedScheduleResource::collection($schedules);
+            ? AdminResource::collection($schedules)
+            : KaryawanResource::collection($schedules);
     }
 
     public function store(FixedScheduleRequest $request)
     {
         if (!Auth::user()->hasRole('admin')) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message'=>'Unauthorized'],403);
         }
 
-        $schedule = $this->fixedScheduleService->create($request->validated());
-        return new AdminFixedScheduleResource($schedule);
+        $schedule = $this->service->create($request->validated());
+        return new AdminResource($schedule);
     }
 
     public function show($id)
     {
-        $schedule = $this->fixedScheduleService->find($id);
+        $schedule = $this->service->find($id);
 
         return Auth::user()->hasRole('admin')
-            ? new AdminFixedScheduleResource($schedule)
-            : new KaryawanFixedScheduleResource($schedule);
+            ? new AdminResource($schedule)
+            : new KaryawanResource($schedule);
     }
 
-    public function update(FixedScheduleRequest $request, $id)
+    public function update(FixedScheduleRequest $request,$id)
     {
         if (!Auth::user()->hasRole('admin')) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message'=>'Unauthorized'],403);
         }
 
-        $schedule = $this->fixedScheduleService->update($id, $request->validated());
-        return new AdminFixedScheduleResource($schedule);
+        $schedule = $this->service->update($id,$request->validated());
+        return new AdminResource($schedule);
     }
 
     public function destroy($id)
     {
         if (!Auth::user()->hasRole('admin')) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message'=>'Unauthorized'],403);
         }
 
-        $this->fixedScheduleService->delete($id);
-        return response()->json(['message' => 'FixedSchedule deleted successfully']);
+        $this->service->delete($id);
+        return response()->json(['message'=>'FixedSchedule deleted successfully']);
     }
 }

@@ -10,17 +10,19 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-{
-    Schema::create('fixed_schedules', function (Blueprint $table) {
-        $table->id();
-        $table->foreignId('room_id')->constrained('rooms')->onDelete('cascade');
-        $table->enum('hari', ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu']);
-        $table->time('waktu_mulai');
-        $table->time('waktu_selesai');
-        $table->string('keterangan')->nullable();
-        $table->timestamps();
-    });
-}
+    {
+        Schema::create('fixed_schedules', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('room_id')->constrained()->onDelete('cascade');
+            $table->date('tanggal'); // tambahkan kolom tanggal
+            $table->enum('hari', ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'])->nullable();
+            $table->time('waktu_mulai');
+            $table->time('waktu_selesai');
+            $table->string('keterangan')->nullable();
+            $table->timestamps();
+        });
+    }
 
     /**
      * Reverse the migrations.

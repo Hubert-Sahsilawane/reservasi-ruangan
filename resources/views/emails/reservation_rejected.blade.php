@@ -1,35 +1,24 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reservasi Ditolak</title>
 </head>
-<body style="font-family: Arial, sans-serif; color: #333;">
-    <h2>Halo {{ $reservation->user->name }},</h2>
+<body>
+    <h2>Halo, {{ $reservation->user->name }} 👋</h2>
 
-    <p>
-        Maaf, reservasi Anda untuk <strong>{{ $reservation->room->name }}</strong>
-        pada hari <b>{{ $reservation->hari }}</b>:
-    </p>
+    <p>Mohon maaf, reservasi Anda <strong>DITOLAK</strong> ❌</p>
 
-    <p>
-        <b>
-            {{ \Carbon\Carbon::parse($reservation->tanggal.' '.$reservation->waktu_mulai)->format('d M Y H:i') }}
-        </b>
-        sampai
-        <b>
-            {{ \Carbon\Carbon::parse($reservation->tanggal.' '.$reservation->waktu_selesai)->format('H:i') }}
-        </b>
-    </p>
+    <ul>
+        <li><strong>Ruangan:</strong> {{ $reservation->room->nama_ruangan }}</li>
+        <li><strong>Tanggal:</strong> {{ $reservation->tanggal->format('d M Y') }} ({{ $reservation->hari }})</li>
+        <li><strong>Waktu:</strong> {{ substr($reservation->waktu_mulai,0,5) }} - {{ substr($reservation->waktu_selesai,0,5) }}</li>
+        <li><strong>Keterangan:</strong> {{ $reservation->keterangan ?? '-' }}</li>
+    </ul>
 
-    <p style="color:red; font-weight:bold;">
-        Telah DITOLAK ❌
-    </p>
+    <p><strong>Alasan Penolakan:</strong> {{ $reason ?? 'Tidak ada alasan diberikan.' }}</p>
 
-    @if(!empty($reason))
-        <p><strong>Alasan:</strong> {{ $reason }}</p>
-    @endif
-
-    <p>Silakan coba ajukan reservasi lain dengan jadwal yang berbeda.</p>
+    <p>Silakan ajukan ulang reservasi dengan jadwal yang berbeda.</p>
 </body>
 </html>

@@ -32,14 +32,26 @@ Route::middleware('auth:api')->group(function () {
      * ===============================
      */
     Route::middleware('role:admin')->prefix('admin')->group(function () {
-        // Rooms Management (Admin full CRUD)
-        Route::apiResource('rooms', RoomController::class);
+        // Rooms Management (CRUD manual)
+        Route::get('rooms', [RoomController::class, 'index'])->name('admin.rooms.index');
+        Route::get('rooms/{id}', [RoomController::class, 'show'])->name('admin.rooms.show');
+        Route::post('rooms', [RoomController::class, 'store'])->name('admin.rooms.store');
+        Route::put('rooms/{id}', [RoomController::class, 'update'])->name('admin.rooms.update');
+        Route::delete('rooms/{id}', [RoomController::class, 'destroy'])->name('admin.rooms.destroy');
 
-        // Fixed Schedules Management (Admin full CRUD)
-        Route::apiResource('fixed-schedules', FixedScheduleController::class);
+        // Fixed Schedules Management (CRUD manual)
+        Route::get('fixed-schedules', [FixedScheduleController::class, 'index'])->name('admin.fixed-schedules.index');
+        Route::get('fixed-schedules/{id}', [FixedScheduleController::class, 'show'])->name('admin.fixed-schedules.show');
+        Route::post('fixed-schedules', [FixedScheduleController::class, 'store'])->name('admin.fixed-schedules.store');
+        Route::put('fixed-schedules/{id}', [FixedScheduleController::class, 'update'])->name('admin.fixed-schedules.update');
+        Route::delete('fixed-schedules/{id}', [FixedScheduleController::class, 'destroy'])->name('admin.fixed-schedules.destroy');
 
-        // Users Management
-        Route::apiResource('users', UserController::class);
+        // Users Management (CRUD manual)
+        Route::get('users', [UserController::class, 'index'])->name('admin.users.index');
+        Route::get('users/{id}', [UserController::class, 'show'])->name('admin.users.show');
+        Route::post('users', [UserController::class, 'store'])->name('admin.users.store');
+        Route::put('users/{id}', [UserController::class, 'update'])->name('admin.users.update');
+        Route::delete('users/{id}', [UserController::class, 'destroy'])->name('admin.users.destroy');
 
         // Reservations Management (Admin full kontrol)
         Route::get('reservations', [AdminReservationController::class, 'index'])->name('admin.reservations.index');
