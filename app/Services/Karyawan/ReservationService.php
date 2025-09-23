@@ -31,21 +31,18 @@ class ReservationService
         $data['waktu_mulai']   = $mulai->format('H:i');
         $data['waktu_selesai'] = $selesai->format('H:i');
 
-
-        // ✅ Validasi bentrok dengan FixedSchedule
-        $dayOfWeek = Carbon::parse($tanggal)->dayOfWeek; // 0=Min, 1=Senin, dst
-
+        // ✅ Validasi bentrok dengan FixedSchedule (HARUS ditolak)
         $conflictFixed = FixedSchedule::where('room_id', $data['room_id'])
-    ->where('hari', $data['hari'])   // ✅ bandingkan string "Senin"
-    ->where(function ($q) use ($mulai, $selesai) {
-        $q->whereBetween('waktu_mulai', [$mulai, $selesai])
-          ->orWhereBetween('waktu_selesai', [$mulai, $selesai])
-          ->orWhere(function ($q2) use ($mulai, $selesai) {
-              $q2->where('waktu_mulai', '<=', $mulai)
-                 ->where('waktu_selesai', '>=', $selesai);
-          });
-    })
-    ->exists();
+            ->where('hari', $data['hari'])   // bandingkan string "Senin"
+            ->where(function ($q) use ($mulai, $selesai) {
+                $q->whereBetween('waktu_mulai', [$mulai, $selesai])
+                  ->orWhereBetween('waktu_selesai', [$mulai, $selesai])
+                  ->orWhere(function ($q2) use ($mulai, $selesai) {
+                      $q2->where('waktu_mulai', '<=', $mulai)
+                         ->where('waktu_selesai', '>=', $selesai);
+                  });
+            })
+            ->exists();
 
         if ($conflictFixed) {
             throw ValidationException::withMessages([
@@ -53,17 +50,19 @@ class ReservationService
             ]);
         }
 
-        // ✅ Validasi bentrok dengan reservasi lain
+        // ✅ Cek bentrok dengan reservasi lain, tapi JANGAN tolak
         $conflictReservation = Reservation::overlapping(
             $data['room_id'], $mulai, $selesai
-        )->exists();
+        )->whereDate('tanggal', $tanggal)
+         ->whereIn('status', ['pending', 'approved'])
+         ->exists();
 
         if ($conflictReservation) {
-            throw ValidationException::withMessages([
-                'reservation' => 'Bentrok dengan reservasi lain.'
-            ]);
+            // Tandai di keterangan (opsional, agar admin tahu ini bentrok)
+            $data['keterangan'] = ($data['keterangan'] ?? '') . ' (Bentrok, menunggu keputusan admin)';
         }
 
+        // Simpan reservasi
         return Reservation::create($data);
     }
 
