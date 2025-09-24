@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Room;
 use App\Models\User;
 use App\Models\Reservation;
+use Carbon\Carbon;
 
 class FixedSchedule extends Model
 {
@@ -45,20 +46,32 @@ class FixedSchedule extends Model
         return $this->belongsTo(User::class);
     }
 
+     public function setTanggalAttribute($value)
+    {
+        $this->attributes['tanggal'] = $value;
+
+        $carbon = Carbon::parse($value)->locale('id');
+        $this->attributes['hari'] = ucfirst($carbon->dayName); // Contoh: Senin
+    }
+
         /**
      * Scope untuk mencari overlapping reservation
      */
     public function scopeOverlapping($query, $roomId, $mulai, $selesai)
-    {
-        return $query->where('room_id', $roomId)
-            ->whereIn('status', ['pending','approved'])
-            ->where(function ($q) use ($mulai, $selesai) {
-                $q->whereBetween('waktu_mulai', [$mulai, $selesai])
-                  ->orWhereBetween('waktu_selesai', [$mulai, $selesai])
-                  ->orWhere(function ($q2) use ($mulai, $selesai) {
-                      $q2->where('waktu_mulai', '<=', $mulai)
-                         ->where('waktu_selesai', '>=', $selesai);
-                  });
-            });
-    }
+{
+    $mulai   = Carbon::parse($mulai)->format('H:i');
+    $selesai = Carbon::parse($selesai)->format('H:i');
+
+    return $query->where('room_id', $roomId)
+        ->whereIn('status', ['pending','approved'])
+        ->where(function ($q) use ($mulai, $selesai) {
+            $q->whereBetween('waktu_mulai', [$mulai, $selesai])
+              ->orWhereBetween('waktu_selesai', [$mulai, $selesai])
+              ->orWhere(function ($q2) use ($mulai, $selesai) {
+                  $q2->where('waktu_mulai', '<=', $mulai)
+                     ->where('waktu_selesai', '>=', $selesai);
+              });
+        });
+}
+
 }

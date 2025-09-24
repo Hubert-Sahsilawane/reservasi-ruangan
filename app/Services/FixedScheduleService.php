@@ -1,10 +1,11 @@
 <?php
-
 namespace App\Services;
 
 use App\Models\FixedSchedule;
+use App\Models\Reservation;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class FixedScheduleService
 {
@@ -22,6 +23,10 @@ class FixedScheduleService
     {
         $data['user_id'] = Auth::id();
 
+        // ✅ otomatis isi hari dari tanggal
+        $data['hari'] = Carbon::parse($data['tanggal'])->locale('id')->dayName;
+
+        // 🔍 Cek bentrok dengan FixedSchedule lain
         $conflict = FixedSchedule::where('room_id', $data['room_id'])
             ->where('hari', $data['hari'])
             ->where(function ($q) use ($data) {
@@ -40,12 +45,30 @@ class FixedScheduleService
             ]);
         }
 
-        return FixedSchedule::create($data);
+        $schedule = FixedSchedule::create($data);
+
+        // ✅ REJECT semua reservasi bentrok
+        $conflictReservations = Reservation::where('room_id', $data['room_id'])
+            ->where('hari', $data['hari'])
+            ->whereIn('status', ['pending', 'approved'])
+            ->get();
+
+        foreach ($conflictReservations as $reservation) {
+            $reservation->update([
+                'status' => 'rejected',
+                'reason' => 'Ditolak otomatis karena bentrok dengan Fixed Schedule.'
+            ]);
+        }
+
+        return $schedule;
     }
 
     public function update($id, array $data)
     {
         $schedule = FixedSchedule::findOrFail($id);
+
+        // ✅ otomatis isi hari dari tanggal
+        $data['hari'] = Carbon::parse($data['tanggal'])->locale('id')->dayName;
 
         $conflict = FixedSchedule::where('room_id', $data['room_id'])
             ->where('hari', $data['hari'])

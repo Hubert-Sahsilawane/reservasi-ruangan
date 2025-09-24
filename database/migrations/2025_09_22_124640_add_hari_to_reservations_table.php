@@ -11,9 +11,9 @@ return new class extends Migration
         Schema::table('reservations', function (Blueprint $table) {
             $table->string('hari')->after('tanggal')->nullable();
 
-            // Ubah waktu_mulai & waktu_selesai ke tipe time (biar konsisten)
-            $table->time('waktu_mulai')->change();
-            $table->time('waktu_selesai')->change();
+            // Simpan jam dalam format string "HH:ii" (contoh: 09:00)
+            $table->string('waktu_mulai', 5)->change();
+            $table->string('waktu_selesai', 5)->change();
         });
     }
 
@@ -22,8 +22,9 @@ return new class extends Migration
         Schema::table('reservations', function (Blueprint $table) {
             $table->dropColumn('hari');
 
-            $table->string('waktu_mulai')->change();
-            $table->string('waktu_selesai')->change();
+            // Balikin ke tipe TIME kalau perlu rollback
+            $table->time('waktu_mulai')->change();
+            $table->time('waktu_selesai')->change();
         });
     }
 };

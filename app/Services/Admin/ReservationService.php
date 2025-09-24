@@ -7,52 +7,31 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\ReservationApprovedMail;
 use App\Mail\ReservationRejectedMail;
 use App\Mail\ReservationCanceledByOverlapMail;
+use App\Services\Traits\ReservationCommonTrait;
 
 class ReservationService
 {
-    public function getAll()
-    {
-        return Reservation::with(['user', 'room'])
-            ->orderBy('tanggal', 'desc')
-            ->orderBy('waktu_mulai')
-            ->get();
-    }
+    use ReservationCommonTrait;
 
-    public function approve($id)
-    {
-        return $this->updateStatus($id, 'approved');
-    }
-
-    public function reject($id, $reason = null)
-    {
-        return $this->updateStatus($id, 'rejected', $reason);
-    }
-
-    public function delete($id)
-    {
-        $reservation = Reservation::findOrFail($id);
-        $reservation->delete();
-
-        return true;
-    }
-
-    public function updateStatus($id, string $status, $reason = null)
+    public function updateStatus($id, array $data)
     {
         $reservation = Reservation::with(['user', 'room'])->findOrFail($id);
 
-        $reservation->update(['status' => $status]);
+        $reservation->update([
+            'status' => $data['status'],
+            'reason' => $data['reason'] ?? null,
+        ]);
 
-        // ✅ Jika disetujui
-        if ($status === 'approved') {
-            // kirim email approved
+        // ✅ Approved
+        if ($data['status'] === 'approved') {
             if ($reservation->user) {
                 Mail::to($reservation->user->email)
                     ->send(new ReservationApprovedMail($reservation));
             }
 
-            // ✅ Cancel semua pending yang bentrok di hari yg sama
+            // Tolak semua pending lain yang bentrok
             $overlaps = Reservation::where('room_id', $reservation->room_id)
-                ->where('hari', $reservation->hari)   // tambahkan filter hari
+                ->where('hari', $reservation->hari)
                 ->where('id', '!=', $reservation->id)
                 ->where('status', 'pending')
                 ->where(function ($q) use ($reservation) {
@@ -66,7 +45,11 @@ class ReservationService
                 ->get();
 
             foreach ($overlaps as $overlap) {
-                $overlap->update(['status' => 'canceled']);
+                $overlap->update([
+                    'status' => 'rejected',
+                    'reason' => 'Ditolak otomatis karena bentrok dengan reservasi lain yang sudah disetujui.'
+                ]);
+
                 if ($overlap->user) {
                     Mail::to($overlap->user->email)
                         ->send(new ReservationCanceledByOverlapMail($overlap, $reservation));
@@ -74,12 +57,19 @@ class ReservationService
             }
         }
 
-        // ✅ Jika ditolak
-        if ($status === 'rejected' && $reservation->user) {
+        // ✅ Rejected
+        if ($data['status'] === 'rejected' && $reservation->user) {
             Mail::to($reservation->user->email)
-                ->send(new ReservationRejectedMail($reservation, $reason));
+                ->send(new ReservationRejectedMail($reservation, $data['reason'] ?? null));
         }
 
         return $reservation;
+    }
+
+    public function delete($id)
+    {
+        $reservation = Reservation::findOrFail($id);
+        $reservation->delete();
+        return true;
     }
 }

@@ -8,14 +8,14 @@ class ReservationUpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return true; // sudah dijaga di controller pakai role admin
     }
 
     public function rules(): array
-{
-    return [
-        'status' => 'required|in:approved,rejected,canceled',
-        'reason' => 'nullable|string|max:255',
-    ];
-}
+    {
+        return [
+            'status' => 'required|in:approved,rejected',
+            'reason' => 'nullable|string|max:255'
+        ];
+    }
 }

@@ -19,7 +19,6 @@ class ReservationResource extends JsonResource
             'waktu_mulai'   => $this->waktu_mulai,
             'waktu_selesai' => $this->waktu_selesai,
             'status'        => $this->status,
-            'reason'        => $this->reason, // ✅ tampilkan reason
             'created_at'    => $this->created_at->toDateTimeString(),
         ];
     }

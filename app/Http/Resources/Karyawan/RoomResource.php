@@ -14,7 +14,6 @@ class RoomResource extends JsonResource
             'kapasitas'     => $this->kapasitas,
             'deskripsi'     => $this->deskripsi,
             'status'        => $this->status,        // dari DB
-            'status_aktual' => $this->status_aktual, // real-time
         ];
     }
 }

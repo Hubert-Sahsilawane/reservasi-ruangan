@@ -6,91 +6,110 @@ use App\Models\Reservation;
 use App\Models\FixedSchedule;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
+use App\Services\Traits\ReservationCommonTrait;
 
 class ReservationService
 {
+    use ReservationCommonTrait;
+
     public function create(array $data)
     {
         $data['status'] = 'pending';
 
-        // Parse tanggal & waktu
         $tanggal = Carbon::parse($data['tanggal'])->format('Y-m-d');
         $mulai   = Carbon::parse($tanggal . ' ' . $data['waktu_mulai']);
         $selesai = Carbon::parse($tanggal . ' ' . $data['waktu_selesai']);
 
-        // 🚫 Tidak boleh reservasi di waktu lampau
-        if ($mulai->isPast()) {
+        // Tidak boleh booking di waktu yang sudah lewat
+        if ($mulai->lt(now())) {
             throw ValidationException::withMessages([
                 'tanggal' => 'Tidak bisa membuat reservasi di waktu yang sudah lewat.'
             ]);
         }
 
-        // 🚫 Limit waktu booking: maksimal H-30
+        // Maksimal H-30
         if ($mulai->gt(now()->addDays(30))) {
             throw ValidationException::withMessages([
                 'tanggal' => 'Reservasi hanya bisa dilakukan maksimal H-30 sebelum tanggal meeting.'
             ]);
         }
 
-        // 🚫 Validasi waktu mulai < waktu selesai
+        // Validasi waktu mulai < waktu selesai
         if ($mulai >= $selesai) {
             throw ValidationException::withMessages([
                 'waktu' => 'Waktu mulai harus lebih awal dari waktu selesai.'
             ]);
         }
 
-        // 🚫 Durasi maksimal 3 jam
-        if ($selesai->diffInHours($mulai) > 3) {
+        // ✅ Validasi durasi maksimal 3 jam
+        $durasi = $selesai->diffInMinutes($mulai);
+        if ($durasi > 180) {
             throw ValidationException::withMessages([
-                'durasi' => 'Durasi meeting maksimal 3 jam.'
+                'durasi' => "Durasi meeting maksimal 3 jam. Anda input: {$durasi} menit."
             ]);
         }
 
-        // Simpan tanggal & waktu
+        // Normalisasi data setelah validasi
         $data['tanggal']       = $tanggal;
-        $data['hari']          = Carbon::parse($tanggal)->locale('id')->dayName;
         $data['waktu_mulai']   = $mulai->format('H:i');
         $data['waktu_selesai'] = $selesai->format('H:i');
+        $data['hari']          = Carbon::parse($tanggal)->locale('id')->dayName;
 
-        // ✅ Validasi bentrok dengan FixedSchedule (HARUS ditolak)
+        // Cek bentrok dengan Fixed Schedule
         $conflictFixed = FixedSchedule::where('room_id', $data['room_id'])
             ->where('hari', $data['hari'])
             ->where(function ($q) use ($mulai, $selesai) {
-                $q->whereBetween('waktu_mulai', [$mulai, $selesai])
-                  ->orWhereBetween('waktu_selesai', [$mulai, $selesai])
+                $q->whereBetween('waktu_mulai', [$mulai->format('H:i'), $selesai->format('H:i')])
+                  ->orWhereBetween('waktu_selesai', [$mulai->format('H:i'), $selesai->format('H:i')])
                   ->orWhere(function ($q2) use ($mulai, $selesai) {
-                      $q2->where('waktu_mulai', '<=', $mulai)
-                         ->where('waktu_selesai', '>=', $selesai);
+                      $q2->where('waktu_mulai', '<=', $mulai->format('H:i'))
+                         ->where('waktu_selesai', '>=', $selesai->format('H:i'));
                   });
             })
             ->exists();
 
         if ($conflictFixed) {
-            throw ValidationException::withMessages([
-                'reservation' => 'Bentrok dengan jadwal tetap.'
-            ]);
+            $data['status'] = 'rejected';
+            $data['reason'] = 'Ditolak otomatis karena bentrok dengan Fixed Schedule.';
+            return Reservation::create($data);
         }
 
-        // ✅ Cek bentrok dengan reservasi lain, tapi JANGAN tolak
-        $conflictReservation = Reservation::overlapping(
+        // Cek bentrok dengan reservasi user sendiri
+        $conflictReservations = Reservation::overlapping(
             $data['room_id'], $mulai, $selesai
-        )->whereDate('tanggal', $tanggal)
-         ->whereIn('status', ['pending', 'approved'])
-         ->exists();
+        )
+            ->whereDate('tanggal', $tanggal)
+            ->whereIn('status', ['pending', 'approved'])
+            ->where('user_id', $data['user_id'])
+            ->get();
 
-        if ($conflictReservation) {
-            $data['reason'] = ($data['reason'] ?? '') . ' (Bentrok, menunggu keputusan admin)';
+        if ($conflictReservations->count() > 0) {
+            $data['status'] = 'rejected';
+            $data['reason'] = 'Ditolak otomatis karena user sudah punya reservasi pada waktu ini.';
         }
 
         return Reservation::create($data);
     }
 
-    public function getUserReservations($userId)
+    public function getUserReservations(int $userId)
     {
         return Reservation::with('room')
             ->where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->get();
+    }
+
+    public function getUserReservationById(int $userId, int $id)
+    {
+        $reservation = Reservation::with(['user', 'room'])
+            ->where('user_id', $userId)
+            ->find($id);
+
+        if (! $reservation) {
+            abort(403, 'Anda tidak punya akses untuk melihat reservasi ini.');
+        }
+
+        return $reservation;
     }
 
     public function cancel(int $reservationId, int $userId, string $reason)
@@ -101,7 +120,7 @@ class ReservationService
             ->firstOrFail();
 
         $reservation->update([
-            'status' => 'canceled',
+            'status' => 'rejected', // cancel → reject
             'reason' => $reason,
         ]);
 

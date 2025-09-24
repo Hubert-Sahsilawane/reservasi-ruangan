@@ -16,7 +16,6 @@ class ReservationCancelRequest extends FormRequest
         return [
             'room_id'       => 'required|exists:rooms,id',
             'tanggal'       => 'required|date|after_or_equal:today',
-            'hari'          => 'required|string|in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu,Minggu',
             'waktu_mulai'   => 'required|time_format:H:i',
             'waktu_selesai' => 'required|time_format:H:i|after:waktu_mulai',
             'reason'        => 'nullable|string|max:255',
