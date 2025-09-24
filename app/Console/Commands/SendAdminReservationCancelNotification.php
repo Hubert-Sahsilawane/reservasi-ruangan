@@ -26,9 +26,11 @@ class SendAdminReservationCancelNotification extends Command
         }
 
         foreach ($reservations as $reservation) {
-            Mail::to('superadmin@example.com') // bisa ambil dari config/users table
+            // ✅ Kirim ke admin saja
+            Mail::to('admin@reservasi.com')
                 ->send(new AdminReservationCanceledMail($reservation));
 
+            // update flag supaya tidak dikirim berulang
             $reservation->update(['admin_notified_at' => now()]);
 
             $this->info("Notifikasi reservasi #{$reservation->id} berhasil dikirim ke admin.");
