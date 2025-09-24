@@ -4,23 +4,27 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Reservation;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\ReservationApprovedMail;
-use App\Mail\ReservationRejectedMail;
+use App\Services\Admin\ReservationService;
 
 class ReservationController extends Controller
 {
+    protected $service;
+
+    public function __construct(ReservationService $service)
+    {
+        $this->service = $service;
+    }
+
     /**
      * Menampilkan semua reservasi (untuk admin).
      */
     public function index()
     {
-        $reservations = Reservation::with(['user','room'])->latest()->get();
+        $reservations = $this->service->getAll();
 
         return response()->json([
             'message' => 'Daftar semua reservasi berhasil diambil.',
-            'data'    => $reservations
+            'data'    => $reservations,
         ]);
     }
 
@@ -29,16 +33,11 @@ class ReservationController extends Controller
      */
     public function approve($id)
     {
-        $reservation = Reservation::with(['user','room'])->findOrFail($id);
-        $reservation->status = 'approved';
-        $reservation->save();
-
-        // Kirim Email ke user
-        Mail::to($reservation->user->email)->send(new ReservationApprovedMail($reservation));
+        $reservation = $this->service->approve($id);
 
         return response()->json([
             'message' => 'Reservasi berhasil disetujui & notifikasi email terkirim.',
-            'data'    => $reservation
+            'data'    => $reservation,
         ]);
     }
 
@@ -47,19 +46,16 @@ class ReservationController extends Controller
      */
     public function reject(Request $request, $id)
     {
-        $reservation = Reservation::with(['user','room'])->findOrFail($id);
-        $reservation->status = 'rejected';
-        $reservation->save();
+        $request->validate([
+            'reason' => 'required|string|max:255',
+        ]);
 
-        $reason = $request->input('reason', 'Tidak ada alasan diberikan.');
-
-        // Kirim Email ke user
-        Mail::to($reservation->user->email)->send(new ReservationRejectedMail($reservation, $reason));
+        $reservation = $this->service->reject($id, $request->reason);
 
         return response()->json([
             'message' => 'Reservasi berhasil ditolak & notifikasi email terkirim.',
             'data'    => $reservation,
-            'reason'  => $reason
+            'reason'  => $request->reason,
         ]);
     }
 
@@ -68,11 +64,10 @@ class ReservationController extends Controller
      */
     public function destroy($id)
     {
-        $reservation = Reservation::findOrFail($id);
-        $reservation->delete();
+        $this->service->delete($id);
 
         return response()->json([
-            'message' => 'Reservasi berhasil dihapus.'
+            'message' => 'Reservasi berhasil dihapus.',
         ]);
     }
 }

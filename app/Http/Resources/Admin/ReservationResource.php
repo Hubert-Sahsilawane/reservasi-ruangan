@@ -24,7 +24,7 @@ public function toArray($request): array
         'waktu_mulai'   => $this->waktu_mulai,
         'waktu_selesai' => $this->waktu_selesai,
         'status'        => $this->status,
-        'keterangan'    => $this->keterangan,
+        'reason'        => $this->reason, // ✅ Tambah di sini
         'created_at'    => $this->created_at->toDateTimeString(),
         'updated_at'    => $this->updated_at->toDateTimeString(),
     ];

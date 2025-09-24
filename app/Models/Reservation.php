@@ -18,7 +18,7 @@ class Reservation extends Model
         'hari',           // ✅ hari disimpan text: "Senin".."Minggu"
         'waktu_mulai',
         'waktu_selesai',
-        'keterangan',
+        'reason',
         'status',
     ];
 

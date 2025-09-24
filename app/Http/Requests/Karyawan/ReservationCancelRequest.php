@@ -4,7 +4,7 @@ namespace App\Http\Requests\Karyawan;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ReservationStoreRequest extends FormRequest
+class ReservationCancelRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -19,6 +19,7 @@ class ReservationStoreRequest extends FormRequest
             'hari'          => 'required|string|in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu,Minggu',
             'waktu_mulai'   => 'required|time_format:H:i',
             'waktu_selesai' => 'required|time_format:H:i|after:waktu_mulai',
+            'reason'        => 'nullable|string|max:255',
         ];
     }
 }

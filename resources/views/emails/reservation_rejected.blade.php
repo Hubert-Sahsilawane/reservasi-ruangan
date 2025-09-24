@@ -12,10 +12,10 @@
 
     <ul>
         <li><strong>Ruangan:</strong> {{ $reservation->room->nama_ruangan }}</li>
+        <li><strong>Hari:</strong> {{ $reservation->hari }}</li>
         <li><strong>Tanggal:</strong> {{ $reservation->tanggal->format('d M Y') }} ({{ $reservation->hari }})</li>
         <li><strong>Waktu:</strong> {{ substr($reservation->waktu_mulai,0,5) }} - {{ substr($reservation->waktu_selesai,0,5) }}</li>
-        <li><strong>Keterangan:</strong> {{ $reservation->keterangan ?? '-' }}</li>
-    </ul>
+        </ul>
 
     <p><strong>Alasan Penolakan:</strong> {{ $reason ?? 'Tidak ada alasan diberikan.' }}</p>
 

@@ -74,8 +74,10 @@ Route::middleware('auth:api')->group(function () {
         Route::get('fixed-schedules', [FixedScheduleController::class, 'index'])->name('karyawan.fixed-schedules.index');
         Route::get('fixed-schedules/{id}', [FixedScheduleController::class, 'show'])->name('karyawan.fixed-schedules.show');
 
-        // Reservations (Karyawan bisa buat & lihat punya sendiri)
+        // Reservations (Karyawan bisa buat, lihat, detail, dan cancel miliknya)
         Route::get('reservations', [KaryawanReservationController::class, 'index'])->name('karyawan.reservations.index');
+        Route::get('reservations/{id}', [KaryawanReservationController::class, 'show'])->name('karyawan.reservations.show');
         Route::post('reservations', [KaryawanReservationController::class, 'store'])->name('karyawan.reservations.store');
+        Route::put('reservations/{id}/cancel', [KaryawanReservationController::class, 'cancel'])->name('karyawan.reservations.cancel');
     });
 });
