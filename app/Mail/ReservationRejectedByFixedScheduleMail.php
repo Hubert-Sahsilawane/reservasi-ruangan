@@ -2,12 +2,12 @@
 
 namespace App\Mail;
 
+use App\Models\Reservation;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
-use App\Models\Reservation;
 
-class AdminReservationCanceledMail extends Mailable
+class ReservationRejectedByFixedScheduleMail extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -20,11 +20,10 @@ class AdminReservationCanceledMail extends Mailable
 
     public function build()
     {
-        return $this->subject('Notifikasi: Reservasi Dibatalkan oleh User')
-                    ->view('emails.admin_reservation_canceled')
+        return $this->subject('Reservasi Anda dibatalkan')
+                    ->view('emails.reservations.rejected_by_fixed_schedule')
                     ->with([
                         'reservation' => $this->reservation,
                     ]);
     }
 }
-    

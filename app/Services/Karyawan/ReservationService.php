@@ -7,6 +7,8 @@ use App\Models\FixedSchedule;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
 use App\Services\Traits\ReservationCommonTrait;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ReservationRejectedByFixedScheduleMail;
 
 class ReservationService
 {
@@ -55,7 +57,7 @@ class ReservationService
         $data['waktu_selesai'] = $selesai->format('H:i');
         $data['hari']          = Carbon::parse($tanggal)->locale('id')->dayName;
 
-        // Cek bentrok dengan Fixed Schedule
+        // ✅ Cek bentrok dengan Fixed Schedule
         $conflictFixed = FixedSchedule::where('room_id', $data['room_id'])
             ->where('hari', $data['hari'])
             ->where(function ($q) use ($mulai, $selesai) {
@@ -71,7 +73,16 @@ class ReservationService
         if ($conflictFixed) {
             $data['status'] = 'rejected';
             $data['reason'] = 'Ditolak otomatis karena bentrok dengan Fixed Schedule.';
-            return Reservation::create($data);
+
+            $reservation = Reservation::create($data);
+
+            // ✅ Kirim email ke user
+            if ($reservation->user && $reservation->user->email) {
+                Mail::to($reservation->user->email)
+                    ->send(new ReservationRejectedByFixedScheduleMail($reservation));
+            }
+
+            return $reservation;
         }
 
         // Cek bentrok dengan reservasi user sendiri

@@ -8,6 +8,7 @@ use App\Http\Resources\Admin\FixedScheduleResource as AdminResource;
 use App\Http\Resources\Karyawan\FixedScheduleResource as KaryawanResource;
 use App\Services\FixedScheduleService;
 use Illuminate\Support\Facades\Auth;
+use App\Models\FixedSchedule;
 
 class FixedScheduleController extends Controller
 {
@@ -37,14 +38,13 @@ class FixedScheduleController extends Controller
         return new AdminResource($schedule);
     }
 
-    public function show($id)
-    {
-        $schedule = $this->service->find($id);
+   public function show(FixedSchedule $schedule)
+{
+    return Auth::user()->hasRole('admin')
+        ? new AdminResource($schedule->load(['room','user']))
+        : new KaryawanResource($schedule->load(['room','user']));
+}
 
-        return Auth::user()->hasRole('admin')
-            ? new AdminResource($schedule)
-            : new KaryawanResource($schedule);
-    }
 
     public function update(FixedScheduleRequest $request,$id)
     {
