@@ -36,15 +36,15 @@ class ReservationService
             ]);
         }
 
-        // Validasi waktu mulai < waktu selesai
-        if ($mulai >= $selesai) {
+        // ✅ Validasi waktu mulai < waktu selesai
+        if ($mulai->greaterThanOrEqualTo($selesai)) {
             throw ValidationException::withMessages([
                 'waktu' => 'Waktu mulai harus lebih awal dari waktu selesai.'
             ]);
         }
 
-        // ✅ Validasi durasi maksimal 3 jam
-        $durasi = $selesai->diffInMinutes($mulai);
+        // ✅ Validasi durasi maksimal 3 jam (180 menit)
+        $durasi = $mulai->diffInMinutes($selesai, false);
         if ($durasi > 180) {
             throw ValidationException::withMessages([
                 'durasi' => "Durasi meeting maksimal 3 jam. Anda input: {$durasi} menit."

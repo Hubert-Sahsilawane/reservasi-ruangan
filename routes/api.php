@@ -20,9 +20,9 @@ Route::post('/register', [RegisterController::class, 'register'])->name('auth.re
 
 Route::middleware('auth:api')->group(function () {
     // Profile
-    Route::get('/profile', [ProfileController::class, 'profile'])->name('profile');
+    Route::get('/profile', [ProfileController::class, 'profile'])->name('profile.detail');
     Route::put('/profile', [ProfileController::class, 'updateProfile'])->name('profile.update');
-    Route::post('/logout', [LogoutController::class, 'logout'])->name('logout');
+    Route::post('/logout', [LogoutController::class, 'logout'])->name('auth.logout');
 
     /**
      * ===============================
@@ -30,56 +30,56 @@ Route::middleware('auth:api')->group(function () {
      * ===============================
      */
     Route::middleware('role:admin|karyawan')->group(function () {
-        // Rooms (lihat)
-        Route::get('rooms', [RoomController::class, 'index'])->name('rooms.index');
-        Route::get('rooms/{id}', [RoomController::class, 'show'])->name('rooms.show');
+        // Rooms
+        Route::get('rooms', [RoomController::class, 'index'])->name('rooms.list');
+        Route::get('rooms/{id}', [RoomController::class, 'show'])->name('rooms.detail');
 
-        // Fixed Schedules (lihat)
-        Route::get('fixed-schedules', [FixedScheduleController::class, 'index'])->name('fixed-schedules.index');
-        Route::get('fixed-schedules/{id}', [FixedScheduleController::class, 'show'])->name('fixed-schedules.show');
+        // Fixed Schedules
+        Route::get('fixed-schedules', [FixedScheduleController::class, 'index'])->name('fixed-schedules.list');
+        Route::get('fixed-schedules/{id}', [FixedScheduleController::class, 'show'])->name('fixed-schedules.detail');
 
-        // Reservations (lihat index & detail → otomatis beda hasil kalau admin atau karyawan)
-        Route::get('reservations', [ReservationController::class, 'index'])->name('reservations.index');
-        Route::get('reservations/{id}', [ReservationController::class, 'show'])->name('reservations.show');
+        // Reservations
+        Route::get('reservations', [ReservationController::class, 'index'])->name('reservations.list');
+        Route::get('reservations/{id}', [ReservationController::class, 'show'])->name('reservations.detail');
     });
 
     /**
      * ===============================
-     * ADMIN ROUTES (Full Kontrol)
+     * ADMIN ROUTES
      * ===============================
      */
     Route::middleware('role:admin')->prefix('admin')->group(function () {
-        // Rooms CRUD
-        Route::post('rooms', [RoomController::class, 'store'])->name('admin.rooms.store');
-        Route::put('rooms/{id}', [RoomController::class, 'update'])->name('admin.rooms.update');
-        Route::delete('rooms/{id}', [RoomController::class, 'destroy'])->name('admin.rooms.destroy');
+        // Rooms
+        Route::post('rooms', [RoomController::class, 'store'])->name('rooms.create');
+        Route::put('rooms/{id}', [RoomController::class, 'update'])->name('rooms.update');
+        Route::delete('rooms/{id}', [RoomController::class, 'destroy'])->name('rooms.delete');
 
-        // Fixed Schedules CRUD
-        Route::post('fixed-schedules', [FixedScheduleController::class, 'store'])->name('admin.fixed-schedules.store');
-        Route::put('fixed-schedules/{id}', [FixedScheduleController::class, 'update'])->name('admin.fixed-schedules.update');
-        Route::delete('fixed-schedules/{id}', [FixedScheduleController::class, 'destroy'])->name('admin.fixed-schedules.destroy');
+        // Fixed Schedules
+        Route::post('fixed-schedules', [FixedScheduleController::class, 'store'])->name('fixed-schedules.create');
+        Route::put('fixed-schedules/{id}', [FixedScheduleController::class, 'update'])->name('fixed-schedules.update');
+        Route::delete('fixed-schedules/{id}', [FixedScheduleController::class, 'destroy'])->name('fixed-schedules.delete');
 
-        // Users Management
-        Route::get('users', [UserController::class, 'index'])->name('admin.users.index');
-        Route::get('users/{id}', [UserController::class, 'show'])->name('admin.users.show');
-        Route::post('users', [UserController::class, 'store'])->name('admin.users.store');
-        Route::put('users/{id}', [UserController::class, 'update'])->name('admin.users.update');
-        Route::delete('users/{id}', [UserController::class, 'destroy'])->name('admin.users.destroy');
+        // Users
+        Route::get('users', [UserController::class, 'index'])->name('users.list');
+        Route::get('users/{id}', [UserController::class, 'show'])->name('users.detail');
+        Route::post('users', [UserController::class, 'store'])->name('users.create');
+        Route::put('users/{id}', [UserController::class, 'update'])->name('users.update');
+        Route::delete('users/{id}', [UserController::class, 'destroy'])->name('users.delete');
 
-        // Reservations kontrol admin
-        Route::put('reservations/{id}/approve', [ReservationController::class, 'update'])->name('admin.reservations.approve');
-        Route::put('reservations/{id}/reject', [ReservationController::class, 'update'])->name('admin.reservations.reject');
-        Route::delete('reservations/{id}', [ReservationController::class, 'destroy'])->name('admin.reservations.destroy');
+        // Reservations (approve/reject/delete)
+        Route::put('reservations/{id}/approve', [ReservationController::class, 'update'])->name('reservations.approve');
+        Route::put('reservations/{id}/reject', [ReservationController::class, 'update'])->name('reservations.reject');
+        Route::delete('reservations/{id}', [ReservationController::class, 'destroy'])->name('reservations.delete');
     });
 
     /**
      * ===============================
-     * KARYAWAN ROUTES (Akses Khusus Karyawan)
+     * KARYAWAN ROUTES
      * ===============================
      */
     Route::middleware('role:karyawan')->prefix('karyawan')->group(function () {
         // Reservations (buat & cancel)
-        Route::post('reservations', [ReservationController::class, 'store'])->name('karyawan.reservations.store');
-        Route::put('reservations/{id}/cancel', [ReservationController::class, 'cancel'])->name('karyawan.reservations.cancel');
+        Route::post('reservations', [ReservationController::class, 'store'])->name('reservations.create');
+        Route::put('reservations/{id}/cancel', [ReservationController::class, 'cancel'])->name('reservations.cancel');
     });
 });

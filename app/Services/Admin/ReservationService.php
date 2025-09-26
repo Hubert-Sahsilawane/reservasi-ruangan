@@ -8,6 +8,7 @@ use App\Mail\ReservationApprovedMail;
 use App\Mail\ReservationRejectedMail;
 use App\Mail\ReservationCanceledByOverlapMail;
 use App\Services\Traits\ReservationCommonTrait;
+use Illuminate\Validation\ValidationException;
 
 class ReservationService
 {
@@ -17,6 +18,13 @@ class ReservationService
     {
         $reservation = Reservation::with(['user', 'room'])->findOrFail($id);
 
+        // ✅ Validasi status yang boleh dipakai
+        if (!in_array($data['status'], ['approved', 'rejected', 'pending'])) {
+            throw ValidationException::withMessages([
+                'status' => 'Status reservasi tidak valid.'
+            ]);
+        }
+
         $reservation->update([
             'status' => $data['status'],
             'reason' => $data['reason'] ?? null,
@@ -24,7 +32,12 @@ class ReservationService
 
         // ✅ Approved
         if ($data['status'] === 'approved') {
-            if ($reservation->user) {
+            // Aktifkan ruangan langsung setelah disetujui
+            if ($reservation->room) {
+                $reservation->room->update(['status' => 'aktif']);
+            }
+
+            if ($reservation->user && $reservation->user->email) {
                 Mail::to($reservation->user->email)
                     ->send(new ReservationApprovedMail($reservation));
             }
@@ -50,7 +63,7 @@ class ReservationService
                     'reason' => 'Ditolak otomatis karena bentrok dengan reservasi lain yang sudah disetujui.'
                 ]);
 
-                if ($overlap->user) {
+                if ($overlap->user && $overlap->user->email) {
                     Mail::to($overlap->user->email)
                         ->send(new ReservationCanceledByOverlapMail($overlap, $reservation));
                 }
@@ -58,7 +71,7 @@ class ReservationService
         }
 
         // ✅ Rejected
-        if ($data['status'] === 'rejected' && $reservation->user) {
+        if ($data['status'] === 'rejected' && $reservation->user && $reservation->user->email) {
             Mail::to($reservation->user->email)
                 ->send(new ReservationRejectedMail($reservation, $data['reason'] ?? null));
         }
