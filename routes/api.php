@@ -68,7 +68,7 @@ Route::middleware('auth:api')->group(function () {
 
         // Reservations (approve/reject/delete)
         Route::put('reservations/{id}/approve', [ReservationController::class, 'update'])->name('reservations.approve');
-        Route::put('reservations/{id}/reject', [ReservationController::class, 'update'])->name('reservations.reject');
+        Route::put('reservations/{id}/rejected', [ReservationController::class, 'update'])->name('reservations.rejected');
         Route::delete('reservations/{id}', [ReservationController::class, 'destroy'])->name('reservations.delete');
     });
 

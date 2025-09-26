@@ -16,27 +16,27 @@ class ProfileController extends Controller
 
     // PUT Profile
     public function updateProfile(Request $request)
-{
-    $user = $request->user();
+    {
+        $user = $request->user();
 
-    $validated = $request->validate([
-        'name'     => ['required', 'string', 'max:255'],
-        'email'    => ['required', 'email', Rule::unique('users')->ignore($user->id)],
-        'phone'    => ['nullable', 'string', 'max:20'],
-        'password' => ['nullable', 'min:6'],
-    ]);
+        $validated = $request->validate([
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'email', Rule::unique('users')->ignore($user->id)],
+            'password' => ['nullable', 'min:6', 'confirmed'], // ✅ ada konfirmasi password
+        ]);
 
-    if (!empty($validated['password'])) {
-        $validated['password'] = Hash::make($validated['password']);
-    } else {
-        unset($validated['password']);
+        // Kalau password ada → hash
+        if (!empty($validated['password'])) {
+            $validated['password'] = Hash::make($validated['password']);
+        } else {
+            unset($validated['password']);
+        }
+
+        $user->update($validated);
+
+        return response()->json([
+            'message' => 'Profile berhasil diperbarui',
+            'user'    => $user
+        ]);
     }
-
-    $user->update($validated);
-
-    return response()->json([
-        'message' => 'Profile berhasil diperbarui',
-        'user'    => $user
-    ]);
-}
 }
