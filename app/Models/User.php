@@ -13,20 +13,13 @@ class User extends Authenticatable implements OAuthenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
-    // ...
-
-
-
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    protected $guard_name = 'api';
+    
     protected $fillable = [
         'name',
         'email',
         'password',
+        'role',
     ];
 
     /**

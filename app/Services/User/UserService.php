@@ -9,6 +9,7 @@ class UserService
 {
     public function getAll()
     {
+        // Ambil semua user dengan role-nya
         return User::with('roles')->get();
     }
 
@@ -17,42 +18,43 @@ class UserService
         return User::with('roles')->findOrFail($id);
     }
 
-   public function create(array $data)
-{
-    $data['password'] = Hash::make($data['password']);
-    $user = User::create($data);
+    public function create(array $data)
+    {
+        // Hash password
+        $data['password'] = Hash::make($data['password']);
 
-    if (!empty($data['role'])) {
-        $user->assignRole($data['role']);
-        $user->role = $data['role'];
-        $user->save();
+        // Buat user baru
+        $user = User::create($data);
+
+        // Assign role jika ada
+        if (!empty($data['role'])) {
+            $user->assignRole($data['role']);
+        }
+
+        return $user->load('roles');
     }
-
-    return $user;
-}
-
 
     public function update($id, array $data)
-{
-    $user = User::findOrFail($id);
+    {
+        $user = User::findOrFail($id);
 
-    if (!empty($data['password'])) {
-        $data['password'] = Hash::make($data['password']);
-    } else {
-        unset($data['password']);
+        // Kalau ada password baru → hash
+        if (!empty($data['password'])) {
+            $data['password'] = Hash::make($data['password']);
+        } else {
+            unset($data['password']);
+        }
+
+        // Update data user
+        $user->update($data);
+
+        // Kalau ada role → ganti role di Spatie
+        if (!empty($data['role'])) {
+            $user->syncRoles([$data['role']]);
+        }
+
+        return $user->load('roles');
     }
-
-    $user->update($data);
-
-    if (!empty($data['role'])) {
-        $user->syncRoles([$data['role']]); // ganti role di Spatie
-        $user->role = $data['role'];
-        $user->save();
-    }
-
-    return $user;
-}
-
 
     public function delete($id)
     {
