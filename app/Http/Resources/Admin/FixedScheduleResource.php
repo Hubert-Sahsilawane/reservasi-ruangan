@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Carbon\Carbon;
 
 class FixedScheduleResource extends JsonResource
 {
@@ -19,8 +20,9 @@ class FixedScheduleResource extends JsonResource
                 'id' => $this->room->id,
                 'name' => $this->room->nama_ruangan,
             ],
-            'tanggal' => $this->tanggal?->format('Y-m-d'),
-            'hari' => $this->hari,
+            'tanggal'       => Carbon::parse($this->tanggal)->format('Y-m-d'),
+            // ✅ Hari otomatis dari tanggal
+            'hari'          => Carbon::parse($this->tanggal)->locale('id')->dayName,
             'waktu_mulai' => $this->waktu_mulai,
             'waktu_selesai' => $this->waktu_selesai,
             'status' => $this->status,
