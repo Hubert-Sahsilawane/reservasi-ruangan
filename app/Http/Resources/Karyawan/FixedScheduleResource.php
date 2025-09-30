@@ -10,13 +10,16 @@ class FixedScheduleResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'room' => $this->room->nama_ruangan,
-            'tanggal' => $this->tanggal?->format('Y-m-d'),
-            'hari' => $this->hari,
-            'waktu_mulai' => $this->waktu_mulai,
+            'room' => [
+                'id' => $this->room->id,
+                'name' => $this->room->nama_ruangan,
+            ],
+            'tanggal'       => optional($this->tanggal)->format('Y-m-d'),
+            'hari'          => optional($this->tanggal)->locale('id')->dayName,
+            'waktu_mulai'   => $this->waktu_mulai,
             'waktu_selesai' => $this->waktu_selesai,
-            'status' => $this->status,
-            'keterangan' => $this->keterangan,
+            'status'        => $this->status,
+            'keterangan'    => $this->keterangan,
         ];
     }
 }

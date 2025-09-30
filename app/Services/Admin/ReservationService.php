@@ -14,75 +14,91 @@ class ReservationService
 {
     use ReservationCommonTrait;
 
-    public function updateStatus($id, array $data)
+public function getAll()
     {
-        $reservation = Reservation::with(['user', 'room'])->findOrFail($id);
-
-        // ✅ Validasi status yang boleh dipakai
-        if (!in_array($data['status'], ['approved', 'rejected', 'pending'])) {
-            throw ValidationException::withMessages([
-                'status' => 'Status reservasi tidak valid.'
-            ]);
-        }
-
-        $reservation->update([
-            'status' => $data['status'],
-            'reason' => $data['reason'] ?? null,
-        ]);
-
-        // ✅ Approved
-        if ($data['status'] === 'approved') {
-            // Aktifkan ruangan langsung setelah disetujui
-            if ($reservation->room) {
-                $reservation->room->update(['status' => 'aktif']);
-            }
-
-            if ($reservation->user && $reservation->user->email) {
-                Mail::to($reservation->user->email)
-                    ->send(new ReservationApprovedMail($reservation));
-            }
-
-            // Tolak semua pending lain yang bentrok
-            $overlaps = Reservation::where('room_id', $reservation->room_id)
-                ->where('hari', $reservation->hari)
-                ->where('id', '!=', $reservation->id)
-                ->where('status', 'pending')
-                ->where(function ($q) use ($reservation) {
-                    $q->whereBetween('waktu_mulai', [$reservation->waktu_mulai, $reservation->waktu_selesai])
-                      ->orWhereBetween('waktu_selesai', [$reservation->waktu_mulai, $reservation->waktu_selesai])
-                      ->orWhere(function ($q2) use ($reservation) {
-                          $q2->where('waktu_mulai', '<=', $reservation->waktu_mulai)
-                             ->where('waktu_selesai', '>=', $reservation->waktu_selesai);
-                      });
-                })
-                ->get();
-
-            foreach ($overlaps as $overlap) {
-                $overlap->update([
-                    'status' => 'rejected',
-                    'reason' => 'Ditolak otomatis karena bentrok dengan reservasi lain yang sudah disetujui.'
-                ]);
-
-                if ($overlap->user && $overlap->user->email) {
-                    Mail::to($overlap->user->email)
-                        ->send(new ReservationCanceledByOverlapMail($overlap, $reservation));
-                }
-            }
-        }
-
-        // ✅ Rejected
-        if ($data['status'] === 'rejected' && $reservation->user && $reservation->user->email) {
-            Mail::to($reservation->user->email)
-                ->send(new ReservationRejectedMail($reservation, $data['reason'] ?? null));
-        }
-
-        return $reservation;
+        return Reservation::with(['user', 'room'])
+            ->latest()
+            ->get(); // otomatis exclude soft deleted
     }
+    
+    public function updateStatus($id, array $data)
+{
+    $reservation = Reservation::with(['user', 'room'])->findOrFail($id);
+
+    if (!in_array($data['status'], ['approved', 'rejected'])) {
+        throw ValidationException::withMessages([
+            'status' => 'Status reservasi tidak valid.'
+        ]);
+    }
+
+    $reservation->update([
+        'status' => $data['status'],
+        'reason' => $data['reason'], // ✅ wajib diisi
+    ]);
+
+    // ✅ Approved
+    if ($data['status'] === 'approved') {
+        if ($reservation->room) {
+            $reservation->room->update(['status' => 'aktif']);
+        }
+
+        if ($reservation->user && $reservation->user->email) {
+            Mail::to($reservation->user->email)
+                ->send(new ReservationApprovedMail($reservation, $data['reason']));
+        }
+
+        // Tolak semua pending lain yang bentrok
+        $overlaps = Reservation::where('room_id', $reservation->room_id)
+            ->where('hari', $reservation->hari)
+            ->where('id', '!=', $reservation->id)
+            ->where('status', 'pending')
+            ->where(function ($q) use ($reservation) {
+                $q->whereBetween('waktu_mulai', [$reservation->waktu_mulai, $reservation->waktu_selesai])
+                  ->orWhereBetween('waktu_selesai', [$reservation->waktu_mulai, $reservation->waktu_selesai])
+                  ->orWhere(function ($q2) use ($reservation) {
+                      $q2->where('waktu_mulai', '<=', $reservation->waktu_mulai)
+                         ->where('waktu_selesai', '>=', $reservation->waktu_selesai);
+                  });
+            })
+            ->get();
+
+        foreach ($overlaps as $overlap) {
+            $overlap->update([
+                'status' => 'rejected',
+                'reason' => 'Ditolak otomatis karena bentrok dengan reservasi lain yang sudah disetujui.'
+            ]);
+
+            if ($overlap->user && $overlap->user->email) {
+                Mail::to($overlap->user->email)
+                    ->send(new ReservationCanceledByOverlapMail($overlap, $reservation));
+            }
+        }
+    }
+
+    // ✅ Rejected
+    if ($data['status'] === 'rejected' && $reservation->user && $reservation->user->email) {
+        Mail::to($reservation->user->email)
+            ->send(new ReservationRejectedMail($reservation, $data['reason']));
+    }
+
+    return $reservation;
+}
+
 
     public function delete($id)
-    {
-        $reservation = Reservation::findOrFail($id);
-        $reservation->delete();
-        return true;
+{
+    $reservation = Reservation::findOrFail($id);
+
+    // contoh: jangan hapus kalau status masih pending
+    if ($reservation->status === 'pending') {
+        throw ValidationException::withMessages([
+            'delete' => 'Reservasi pending tidak boleh langsung dihapus.'
+        ]);
     }
+
+    $reservation->delete(); // ini soft delete
+    return true;
+}
+
+
 }

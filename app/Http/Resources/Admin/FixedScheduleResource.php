@@ -20,15 +20,14 @@ class FixedScheduleResource extends JsonResource
                 'id' => $this->room->id,
                 'name' => $this->room->nama_ruangan,
             ],
-            'tanggal'       => Carbon::parse($this->tanggal)->format('Y-m-d'),
-            // ✅ Hari otomatis dari tanggal
-            'hari'          => Carbon::parse($this->tanggal)->locale('id')->dayName,
-            'waktu_mulai' => $this->waktu_mulai,
+            'tanggal'       => optional($this->tanggal)->format('Y-m-d'),
+            'hari'          => optional($this->tanggal)->locale('id')->dayName,
+            'waktu_mulai'   => $this->waktu_mulai,
             'waktu_selesai' => $this->waktu_selesai,
-            'status' => $this->status,
-            'keterangan' => $this->keterangan,
-            'created_at' => $this->created_at->toDateTimeString(),
-            'updated_at' => $this->updated_at->toDateTimeString(),
+            'status'        => $this->status,
+            'keterangan'    => $this->keterangan,
+            'created_at'    => $this->created_at?->toDateTimeString(),
+            'updated_at'    => $this->updated_at?->toDateTimeString(),
         ];
     }
 }

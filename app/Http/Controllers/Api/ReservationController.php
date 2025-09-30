@@ -125,19 +125,20 @@ class ReservationController extends Controller
      * Hanya Admin
      */
     public function destroy($id)
-    {
-        $user = Auth::user();
+{
+    $user = Auth::user();
 
-        if (! $user->hasRole('admin')) {
-            abort(403, 'Hanya admin yang bisa menghapus reservasi.');
-        }
-
-        $this->adminService->delete($id);
-
-        return response()->json([
-            'message' => 'Reservasi berhasil dihapus.',
-        ]);
+    if (! $user->hasRole('admin')) {
+        abort(403, 'Hanya admin yang bisa menghapus reservasi.');
     }
+
+    $this->adminService->delete($id);
+
+    return response()->json([
+        'message' => 'Reservasi berhasil dihapus.',
+    ]);
+}
+
 
     /**
      * PUT /reservations/{id}/cancel

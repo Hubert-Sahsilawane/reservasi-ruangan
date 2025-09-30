@@ -10,7 +10,7 @@ class RoomResource extends JsonResource
     {
         return [
             'id'            => $this->id,
-            'nama_ruangan'  => $this->nama_ruangan,
+            'name'  => $this->nama_ruangan,
             'kapasitas'     => $this->kapasitas,
             'deskripsi'     => $this->deskripsi,
             'status'        => $this->status,        // dari DB
