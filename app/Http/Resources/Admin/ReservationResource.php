@@ -18,7 +18,7 @@ class ReservationResource extends JsonResource
             ],
             'room'          => [
                 'id'   => $this->room->id,
-                'name' => $this->room->nama_ruangan,
+                'name' => $this->room->name,
             ],
             // ✅ Format tanggal biar lebih rapi
             'tanggal'       => Carbon::parse($this->tanggal)->format('Y-m-d'),

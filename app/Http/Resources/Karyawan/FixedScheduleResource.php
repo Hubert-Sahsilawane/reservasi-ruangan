@@ -12,7 +12,7 @@ class FixedScheduleResource extends JsonResource
             'id' => $this->id,
             'room' => [
                 'id' => $this->room->id,
-                'name' => $this->room->nama_ruangan,
+                'name' => $this->room->nama_name,
             ],
             'tanggal'       => optional($this->tanggal)->format('Y-m-d'),
             'hari'          => optional($this->tanggal)->locale('id')->dayName,

@@ -7,7 +7,7 @@
 <body>
     <p>Halo {{ $reservation->user->name }},</p>
 
-    <p>Reservasi Anda pada ruangan <strong>{{ $reservation->room->nama_ruangan }}</strong>
+    <p>Reservasi Anda pada ruangan <strong>{{ $reservation->room->name }}</strong>
     tanggal <strong>{{ $reservation->tanggal->format('d M Y') }}</strong>
     pukul <strong>{{ $reservation->waktu_mulai }} - {{ $reservation->waktu_selesai }}</strong>
     telah <strong>{{ strtoupper($reservation->status) }}</strong>.</p>

@@ -11,7 +11,7 @@
 
     <ul>
         <li>User: {{ $reservation->user->name }} ({{ $reservation->user->email }})</li>
-        <li>Ruangan: {{ $reservation->room->nama_ruangan }}</li>
+        <li>Ruangan: {{ $reservation->room->name }}</li>
         <li><strong>Hari:</strong> {{ $reservation->hari }}</li>
         <li>Tanggal: {{ $reservation->tanggal }}</li>
         <li>Waktu: {{ $reservation->waktu_mulai }} - {{ $reservation->waktu_selesai }}</li>

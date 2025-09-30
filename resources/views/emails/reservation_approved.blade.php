@@ -11,7 +11,7 @@
     <p>Reservasi Anda telah <strong>DISETUJUI</strong>✅</p>
 
     <ul>
-        <li><strong>Ruangan:</strong> {{ $reservation->room->nama_ruangan }}</li>
+        <li><strong>Ruangan:</strong> {{ $reservation->room->name }}</li>
         <li><strong>Hari:</strong> {{ $reservation->hari }}</li>
         <li><strong>Tanggal:</strong> {{ $reservation->tanggal->format('d M Y') }} ({{ $reservation->hari }})</li>
         <li><strong>Waktu:</strong> {{ substr($reservation->waktu_mulai,0,5) }} - {{ substr($reservation->waktu_selesai,0,5) }}</li>

@@ -23,7 +23,7 @@ class UpdateRoomStatus extends Command
         foreach ($reservations as $reservation) {
             if ($reservation->room) {
                 $reservation->room->update(['status' => 'non-aktif']);
-                $this->info("Room {$reservation->room->nama_ruangan} di-nonaktifkan.");
+                $this->info("Room {$reservation->room->name} di-nonaktifkan.");
             }
         }
 

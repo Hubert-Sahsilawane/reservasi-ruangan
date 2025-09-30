@@ -25,7 +25,7 @@ Artisan::command('rooms:update-status', function () {
 
         if ($now->between($mulai, $selesai)) {
             $fs->room->update(['status' => 'aktif']);
-            $this->info("✅ [FixedSchedule] Ruangan {$fs->room->nama_ruangan} AKTIF");
+            $this->info("✅ [FixedSchedule] Ruangan {$fs->room->name} AKTIF");
         }
     }
 
@@ -48,13 +48,13 @@ Artisan::command('rooms:update-status', function () {
             ->exists();
 
         if ($hasFixed) {
-            $this->warn("⚡ [Reservasi] Ruangan {$res->room->nama_ruangan} diabaikan (ada FixedSchedule)");
+            $this->warn("⚡ [Reservasi] Ruangan {$res->room->name} diabaikan (ada FixedSchedule)");
             continue;
         }
 
         if ($now->between($mulai, $selesai)) {
             $res->room->update(['status' => 'aktif']);
-            $this->info("✅ [Reservasi] Ruangan {$res->room->nama_ruangan} AKTIF");
+            $this->info("✅ [Reservasi] Ruangan {$res->room->name} AKTIF");
         }
     }
 })->purpose('Update status ruangan dengan prioritas FixedSchedule > Reservation');

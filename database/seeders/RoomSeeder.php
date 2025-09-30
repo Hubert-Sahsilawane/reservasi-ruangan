@@ -11,52 +11,52 @@ class RoomSeeder extends Seeder
     {
         $rooms = [
             [
-                'nama_ruangan' => 'Ruang Rapat 1',
+                'name' => 'Ruang Rapat 1',
                 'kapasitas'    => 20,
                 'deskripsi'    => 'Ruang rapat untuk meeting kecil',
             ],
             [
-                'nama_ruangan' => 'Ruang Rapat 2',
+                'name' => 'Ruang Rapat 2',
                 'kapasitas'    => 25,
                 'deskripsi'    => 'Ruang rapat dengan proyektor',
             ],
             [
-                'nama_ruangan' => 'Aula Utama',
+                'name' => 'Aula Utama',
                 'kapasitas'    => 100,
                 'deskripsi'    => 'Ruang besar untuk acara dan seminar',
             ],
             [
-                'nama_ruangan' => 'Ruang Training',
+                'name' => 'Ruang Training',
                 'kapasitas'    => 40,
                 'deskripsi'    => 'Ruang pelatihan karyawan',
             ],
             [
-                'nama_ruangan' => 'Ruang Diskusi A',
+                'name' => 'Ruang Diskusi A',
                 'kapasitas'    => 10,
                 'deskripsi'    => 'Ruang kecil untuk diskusi tim',
             ],
             [
-                'nama_ruangan' => 'Ruang Diskusi B',
+                'name' => 'Ruang Diskusi B',
                 'kapasitas'    => 12,
                 'deskripsi'    => 'Ruang diskusi dengan papan tulis',
             ],
             [
-                'nama_ruangan' => 'Ruang Presentasi',
+                'name' => 'Ruang Presentasi',
                 'kapasitas'    => 50,
                 'deskripsi'    => 'Ruang untuk presentasi dan demo produk',
             ],
             [
-                'nama_ruangan' => 'Ruang Kreatif',
+                'name' => 'Ruang Kreatif',
                 'kapasitas'    => 15,
                 'deskripsi'    => 'Ruang dengan desain santai untuk brainstorming',
             ],
             [
-                'nama_ruangan' => 'Ruang IT Support',
+                'name' => 'Ruang IT Support',
                 'kapasitas'    => 8,
                 'deskripsi'    => 'Ruang kerja tim IT support',
             ],
             [
-                'nama_ruangan' => 'Ruang Manajemen',
+                'name' => 'Ruang Manajemen',
                 'kapasitas'    => 30,
                 'deskripsi'    => 'Ruang meeting manajemen perusahaan',
             ],
@@ -64,7 +64,7 @@ class RoomSeeder extends Seeder
 
         foreach ($rooms as $room) {
             Room::create([
-                'nama_ruangan' => $room['nama_ruangan'],
+                'name'         => $room['name'],
                 'kapasitas'    => $room['kapasitas'],
                 'deskripsi'    => $room['deskripsi'],
                 'status'       => 'non-aktif', // default

@@ -11,7 +11,7 @@ class Room extends Model
     use HasFactory;
 
     protected $fillable = [
-        'nama_ruangan',
+        'name',
         'kapasitas',
         'deskripsi',
         'status', // default di DB = "non-aktif"
