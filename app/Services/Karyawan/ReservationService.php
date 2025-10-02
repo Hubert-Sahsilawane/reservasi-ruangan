@@ -116,7 +116,7 @@ class ReservationService
     public function getUserReservations(int $userId)
     {
         return Reservation::with('room')
-            ->where('user_id', $userId)
+            ->where('user_id', $userId) 
             ->orderBy('created_at', 'desc')
             ->get();
     }
