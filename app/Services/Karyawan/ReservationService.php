@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use App\Services\Traits\ReservationCommonTrait;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ReservationRejectedByFixedScheduleMail;
+use App\Mail\ReservationRejectedMail;
 
 class ReservationService
 {
@@ -85,7 +86,7 @@ class ReservationService
             return $reservation;
         }
 
-        // Cek bentrok dengan reservasi user sendiri
+        // ✅ Cek bentrok dengan reservasi user sendiri
         $conflictReservations = Reservation::overlapping(
             $data['room_id'], $mulai, $selesai
         )
@@ -97,6 +98,16 @@ class ReservationService
         if ($conflictReservations->count() > 0) {
             $data['status'] = 'rejected';
             $data['reason'] = 'Ditolak otomatis karena user sudah punya reservasi pada waktu ini.';
+
+            $reservation = Reservation::create($data);
+
+            // ✅ Kirim email ke user
+            if ($reservation->user && $reservation->user->email) {
+                Mail::to($reservation->user->email)
+                    ->send(new ReservationRejectedMail($reservation));
+            }
+
+            return $reservation;
         }
 
         return Reservation::create($data);
@@ -134,6 +145,12 @@ class ReservationService
             'status' => 'rejected', // cancel → reject
             'reason' => $reason,
         ]);
+
+        // ✅ Kirim email pembatalan ke user
+        if ($reservation->user && $reservation->user->email) {
+            Mail::to($reservation->user->email)
+                ->send(new ReservationRejectedMail($reservation));
+        }
 
         return $reservation;
     }
