@@ -10,6 +10,7 @@ class ReservationResource extends JsonResource
     public function toArray($request): array
     {
         return [
+            'status'        => $this->status, // tetap tampil di dalam data
             'id'            => $this->id,
             'user'          => [
                 'id'    => $this->user->id,
@@ -20,16 +21,20 @@ class ReservationResource extends JsonResource
                 'id'   => $this->room->id,
                 'name' => $this->room->name,
             ],
-            // ✅ Format tanggal biar lebih rapi
             'tanggal'       => Carbon::parse($this->tanggal)->format('Y-m-d'),
-            // ✅ Hari otomatis dari tanggal
             'hari'          => Carbon::parse($this->tanggal)->locale('id')->dayName,
             'waktu_mulai'   => $this->waktu_mulai,
             'waktu_selesai' => $this->waktu_selesai,
-            'status'        => $this->status,
             'reason'        => $this->reason,
             'created_at'    => $this->created_at->toDateTimeString(),
             'updated_at'    => $this->updated_at->toDateTimeString(),
+        ];
+    }
+
+    public function with($request): array
+    {
+        return [
+            'status' => 'success',
         ];
     }
 }

@@ -19,9 +19,9 @@ class ReservationService
     {
         $data['status'] = 'pending';
 
-        $tanggal = Carbon::parse($data['tanggal'])->format('Y-m-d');
-        $mulai   = Carbon::parse($tanggal . ' ' . $data['waktu_mulai']);
-        $selesai = Carbon::parse($tanggal . ' ' . $data['waktu_selesai']);
+        $tanggal   = Carbon::parse($data['tanggal'])->format('Y-m-d');
+        $mulai     = Carbon::parse($tanggal . ' ' . $data['waktu_mulai']);
+        $selesai   = Carbon::parse($tanggal . ' ' . $data['waktu_selesai']);
 
         // Tidak boleh booking di waktu yang sudah lewat
         if ($mulai->lt(now())) {
@@ -37,14 +37,14 @@ class ReservationService
             ]);
         }
 
-        // ✅ Validasi waktu mulai < waktu selesai
+        // Validasi waktu mulai < waktu selesai
         if ($mulai->greaterThanOrEqualTo($selesai)) {
             throw ValidationException::withMessages([
-                'waktu' => 'Waktu mulai harus lebih awal dari waktu selesai.'
+                'waktu_mulai' => 'Waktu mulai harus lebih awal dari waktu selesai.'
             ]);
         }
 
-        // ✅ Validasi durasi maksimal 3 jam (180 menit)
+        // Validasi durasi maksimal 3 jam (180 menit)
         $durasi = $mulai->diffInMinutes($selesai, false);
         if ($durasi > 180) {
             throw ValidationException::withMessages([
@@ -53,12 +53,12 @@ class ReservationService
         }
 
         // Normalisasi data setelah validasi
-        $data['tanggal']       = $tanggal;
-        $data['waktu_mulai']   = $mulai->format('H:i');
-        $data['waktu_selesai'] = $selesai->format('H:i');
-        $data['hari']          = Carbon::parse($tanggal)->locale('id')->dayName;
+        $data['tanggal']        = $tanggal;
+        $data['waktu_mulai']    = $mulai->format('H:i');
+        $data['waktu_selesai']  = $selesai->format('H:i');
+        $data['hari']           = Carbon::parse($tanggal)->locale('id')->dayName;
 
-        // ✅ Cek bentrok dengan Fixed Schedule
+        // Cek bentrok dengan Fixed Schedule
         $conflictFixed = FixedSchedule::where('room_id', $data['room_id'])
             ->where('hari', $data['hari'])
             ->where(function ($q) use ($mulai, $selesai) {
@@ -73,11 +73,10 @@ class ReservationService
 
         if ($conflictFixed) {
             $data['status'] = 'rejected';
-            $data['reason'] = 'Ditolak otomatis karena bentrok dengan Fixed Schedule.';
+            $data['reason'] = 'Ditolak otomatis karena bentrok dengan jadwal tetap (Fixed Schedule).';
 
             $reservation = Reservation::create($data);
 
-            // ✅ Kirim email ke user
             if ($reservation->user && $reservation->user->email) {
                 Mail::to($reservation->user->email)
                     ->send(new ReservationRejectedByFixedScheduleMail($reservation));
@@ -86,7 +85,7 @@ class ReservationService
             return $reservation;
         }
 
-        // ✅ Cek bentrok dengan reservasi user sendiri
+        // Cek bentrok dengan reservasi user sendiri
         $conflictReservations = Reservation::overlapping(
             $data['room_id'], $mulai, $selesai
         )
@@ -97,11 +96,10 @@ class ReservationService
 
         if ($conflictReservations->count() > 0) {
             $data['status'] = 'rejected';
-            $data['reason'] = 'Ditolak otomatis karena user sudah punya reservasi pada waktu ini.';
+            $data['reason'] = 'Ditolak otomatis karena bentrok dengan reservasi lain.';
 
             $reservation = Reservation::create($data);
 
-            // ✅ Kirim email ke user
             if ($reservation->user && $reservation->user->email) {
                 Mail::to($reservation->user->email)
                     ->send(new ReservationRejectedMail($reservation));
@@ -116,7 +114,7 @@ class ReservationService
     public function getUserReservations(int $userId)
     {
         return Reservation::with('room')
-            ->where('user_id', $userId) 
+            ->where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->get();
     }
@@ -142,16 +140,39 @@ class ReservationService
             ->firstOrFail();
 
         $reservation->update([
-            'status' => 'rejected', // cancel → reject
+            'status' => 'rejected',
             'reason' => $reason,
         ]);
 
-        // ✅ Kirim email pembatalan ke user
-        if ($reservation->user && $reservation->user->email) {
-            Mail::to($reservation->user->email)
-                ->send(new ReservationRejectedMail($reservation));
+        return $reservation;
+    }
+
+    /**
+     * 🔍 Ambil daftar reservasi user dengan filter dan pagination
+     */
+    public function getUserReservationsWithFilters(int $userId, array $filters = [], int $perPage = 10)
+    {
+        $query = Reservation::with('room')
+            ->where('user_id', $userId)
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('waktu_mulai', 'asc');
+
+        if (!empty($filters['tanggal'])) {
+            $query->whereDate('tanggal', $filters['tanggal']);
         }
 
-        return $reservation;
+        if (!empty($filters['hari'])) {
+            $query->where('hari', $filters['hari']);
+        }
+
+        if (!empty($filters['waktu_mulai'])) {
+            $query->whereTime('waktu_mulai', '>=', $filters['waktu_mulai']);
+        }
+
+        if (!empty($filters['waktu_selesai'])) {
+            $query->whereTime('waktu_selesai', '<=', $filters['waktu_selesai']);
+        }
+
+        return $query->paginate($perPage);
     }
 }

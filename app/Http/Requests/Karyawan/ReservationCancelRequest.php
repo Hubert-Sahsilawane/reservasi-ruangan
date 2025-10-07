@@ -14,11 +14,15 @@ class ReservationCancelRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'room_id'       => 'required|exists:rooms,id',
-            'tanggal'       => 'required|date|after_or_equal:today',
-            'waktu_mulai'   => 'required|time_format:H:i',
-            'waktu_selesai' => 'required|time_format:H:i|after:waktu_mulai',
-            'reason'        => 'nullable|string|max:255',
+            'reason' => 'required|string|max:255',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'reason.required' => 'Alasan pembatalan harus diisi.',
+            'reason.max' => 'Alasan pembatalan maksimal 255 karakter.',
         ];
     }
 }
