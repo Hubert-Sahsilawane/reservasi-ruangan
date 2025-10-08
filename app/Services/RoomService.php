@@ -30,7 +30,8 @@ class RoomService
             $query->where('status', $filters['status']);
         }
 
-        return $query->paginate($perPage);
+        return $query->orderBy('id', 'desc')->paginate($perPage);
+
     }
 
     /**

@@ -7,6 +7,8 @@ use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Resources\User\UserResource;
 use App\Services\User\UserService;
+use Illuminate\Http\Request;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 
 class UserController extends Controller
@@ -18,13 +20,57 @@ class UserController extends Controller
         $this->userService = $userService;
     }
 
-    // 📌 List semua user
-    public function index()
-    {
-        return UserResource::collection($this->userService->getAll());
+    public function index(Request $request)
+{
+    $search = $request->get('search');
+    $role = $request->get('role');
+    $page = (int) max(1, $request->get('page', 1)); // pagination manual
+    $perPage = 10;
+
+    // 🎭 Validasi role
+    if (!empty($role)) {
+        $validRoles = ['admin', 'superadmin', 'karyawan'];
+        if (!in_array($role, $validRoles)) {
+            return response()->json([
+                'status'  => 'failed',
+                'message' => 'Role tidak ada.',
+                'data'    => null,
+            ], 400);
+        }
     }
 
-    // 📌 Admin membuat user baru (admin/karyawan)
+    // 🔍 Ambil data (urut berdasarkan id ASC)
+    $filters = compact('search', 'role');
+    $query = \App\Models\User::with('roles')
+        ->when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
+        ->when($role, fn($q) => $q->whereHas('roles', fn($q2) => $q2->where('name', $role)))
+        ->orderBy('id', 'asc'); // 🔁 urutkan ID ASC
+
+    $total = $query->count();
+    $users = $query->skip(($page - 1) * $perPage)->take($perPage)->get();
+
+    if ($users->isEmpty()) {
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Data tidak ditemukan.',
+            'data'    => [],
+        ]);
+    }
+
+    $from = ($page - 1) * $perPage + 1;
+    $to = min($from + $users->count() - 1, $total);
+
+    return response()->json([
+        'status'  => 'success',
+        'message' => "Daftar user berhasil diambil (halaman {$page}, data {$from}-{$to}).",
+        'data'    => UserResource::collection($users),
+    ]);
+}
+
+
+
+
+    // 📌 Admin membuat user baru
     public function store(StoreUserRequest $request)
     {
         $user = $this->userService->create($request->validated());
@@ -38,7 +84,7 @@ class UserController extends Controller
         return new UserResource($this->userService->find($id));
     }
 
-    // 📌 Admin update data user atau ubah role (misalnya karyawan → admin)
+    // 📌 Admin update data user
     public function update(UpdateUserRequest $request, $id)
     {
         $user = $this->userService->update($id, $request->validated());

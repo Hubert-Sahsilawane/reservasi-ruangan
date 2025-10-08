@@ -4,14 +4,28 @@ namespace App\Services\User;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Database\Eloquent\Builder;
 
 class UserService
 {
-    public function getAll()
-    {
-        // Ambil semua user dengan role-nya
-        return User::with('roles')->get();
+    public function getAll(array $filters = [], int $perPage = 10)
+{
+    $query = User::with('roles')->orderBy('id', 'asc'); // 🔁 urut berdasarkan ID
+
+    // 🔍 Filter nama
+    if (!empty($filters['search'])) {
+        $query->where('name', 'like', "%{$filters['search']}%");
     }
+
+    // 🎭 Filter role
+    if (!empty($filters['role'])) {
+        $query->whereHas('roles', function (Builder $q) use ($filters) {
+            $q->where('name', $filters['role']);
+        });
+    }
+
+    return $query->paginate($perPage);
+}
 
     public function find($id)
     {
@@ -20,13 +34,10 @@ class UserService
 
     public function create(array $data)
     {
-        // Hash password
         $data['password'] = Hash::make($data['password']);
 
-        // Buat user baru
         $user = User::create($data);
 
-        // Assign role jika ada
         if (!empty($data['role'])) {
             $user->assignRole($data['role']);
         }
@@ -38,17 +49,14 @@ class UserService
     {
         $user = User::findOrFail($id);
 
-        // Kalau ada password baru → hash
         if (!empty($data['password'])) {
             $data['password'] = Hash::make($data['password']);
         } else {
             unset($data['password']);
         }
 
-        // Update data user
         $user->update($data);
 
-        // Kalau ada role → ganti role di Spatie
         if (!empty($data['role'])) {
             $user->syncRoles([$data['role']]);
         }

@@ -16,43 +16,38 @@ class FixedScheduleService
     /* -------------------------------------------------------------------------- */
     /*  GET ALL FIXED SCHEDULES (with filter & pagination)                       */
     /* -------------------------------------------------------------------------- */
-    public function getAll(array $filters = [], int $perPage = 10)
-    {
-        try {
-            $query = FixedSchedule::with(['room', 'user'])
-                ->orderByDesc('tanggal')
-                ->orderBy('waktu_mulai', 'asc');
+   public function getAll(array $filters = [], int $perPage = 10, int $page = 1)
+{
+    try {
+        $query = FixedSchedule::with(['room', 'user'])
+            ->orderBy('id', 'asc'); // biar urut stabil (kayak reservasi)
 
-            // 🔍 Filter nama ruangan
-            if (!empty($filters['search'])) {
-                $query->whereHas('room', function ($q) use ($filters) {
-                    $q->where('name', 'like', "%{$filters['search']}%");
-                });
-            }
-
-            // 🏢 Filter ruangan
-            if (!empty($filters['room_id'])) {
-                $query->where('room_id', $filters['room_id']);
-            }
-
-            // 📅 Filter tanggal
-            if (!empty($filters['tanggal'])) {
-                $query->whereDate('tanggal', $filters['tanggal']);
-            }
-
-            // ⏰ Filter waktu mulai & selesai
-            if (!empty($filters['waktu_mulai'])) {
-                $query->whereTime('waktu_mulai', '>=', $filters['waktu_mulai']);
-            }
-            if (!empty($filters['waktu_selesai'])) {
-                $query->whereTime('waktu_selesai', '<=', $filters['waktu_selesai']);
-            }
-
-            return $query->paginate($perPage);
-        } catch (Exception $e) {
-            throw new Exception("Gagal mengambil data jadwal tetap: " . $e->getMessage());
+        // 🏢 Filter ruangan
+        if (!empty($filters['room_id'])) {
+            $query->where('room_id', $filters['room_id']);
         }
+
+        // 📅 Filter tanggal
+        if (!empty($filters['tanggal'])) {
+            $query->whereDate('tanggal', $filters['tanggal']);
+        }
+
+        // ⏰ Filter waktu mulai & selesai
+        if (!empty($filters['waktu_mulai'])) {
+            $query->whereTime('waktu_mulai', '>=', $filters['waktu_mulai']);
+        }
+
+        if (!empty($filters['waktu_selesai'])) {
+            $query->whereTime('waktu_selesai', '<=', $filters['waktu_selesai']);
+        }
+
+        // 🔁 Pagination sama seperti reservasi
+        return $query->paginate($perPage, ['*'], 'page', $page);
+
+    } catch (Exception $e) {
+        throw new Exception("Gagal mengambil data jadwal tetap: " . $e->getMessage());
     }
+}
 
     /* -------------------------------------------------------------------------- */
     /*  GET FIXED SCHEDULE BY ID                                                  */

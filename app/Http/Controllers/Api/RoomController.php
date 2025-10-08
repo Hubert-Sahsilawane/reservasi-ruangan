@@ -20,34 +20,67 @@ class RoomController extends Controller
         $this->roomService = $roomService;
     }
 
-    /**
-     * GET /rooms
-     * Menampilkan daftar ruangan dengan filter dan pagination
-     */
-    public function index(Request $request)
+public function index(Request $request)
     {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json([
+                'status'  => 'failed',
+                'message' => 'Token tidak valid atau kadaluarsa.',
+                'data'    => null,
+            ], 401);
+        }
+
         $filters = [
-            'name'      => $request->query('name'),
             'kapasitas' => $request->query('kapasitas'),
             'status'    => $request->query('status'),
+            'page'      => $request->query('page', 1),
         ];
 
-        $perPage = $request->query('per_page', 10);
+        // ✅ Validasi STATUS (harus aktif / non-aktif)
+        if (!empty($filters['status']) && !in_array(strtolower($filters['status']), ['aktif', 'non-aktif'])) {
+            return response()->json([
+                'status'  => 'failed',
+                'message' => 'Statusnya wajib AKTIF dan NON-AKTIF',
+                'data'    => null,
+            ], 400);
+        }
 
-        $rooms = $this->roomService->getAll($filters, $perPage);
+        // ✅ Validasi KAPASITAS (harus angka)
+        if (!empty($filters['kapasitas']) && !is_numeric($filters['kapasitas'])) {
+            return response()->json([
+                'status'  => 'failed',
+                'message' => 'Data tidak valid, kapasitas harus ditulis dengan angka',
+                'data'    => null,
+            ], 400);
+        }
 
-        $resource = Auth::user()->hasRole('admin')
-            ? AdminRoomResource::collection($rooms)
-            : KaryawanRoomResource::collection($rooms);
+        // ✅ Ambil data room dengan pagination (default 10 per halaman)
+        $perPage = 10;
+        $rooms = \App\Models\Room::query()
+            ->when($filters['kapasitas'], fn($q) => $q->where('kapasitas', $filters['kapasitas']))
+            ->when($filters['status'], fn($q) => $q->where('status', $filters['status']))
+            ->orderBy('id', 'asc')
+            ->paginate($perPage, ['*'], 'page', $filters['page']);
 
-        return $resource->additional([
-            'status' => 'success',
-            'meta' => [
-                'current_page' => $rooms->currentPage(),
-                'per_page'     => $rooms->perPage(),
-                'total'        => $rooms->total(),
-                'last_page'    => $rooms->lastPage(),
-            ],
+        // ✅ Jika data kosong
+        if ($rooms->isEmpty()) {
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Data tidak ditemukan',
+                'data'    => null,
+            ], 200);
+        }
+
+        // ✅ Tentukan resource sesuai role
+        $resource = $user->hasRole('admin')
+            ? AdminRoomResource::collection($rooms->items())
+            : KaryawanRoomResource::collection($rooms->items());
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Data ruangan berhasil ditampilkan',
+            'data'    => $resource,
         ]);
     }
 
