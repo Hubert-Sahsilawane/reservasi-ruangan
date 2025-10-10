@@ -21,20 +21,22 @@ class RoomController extends Controller
     }
 
 public function index(Request $request)
-    {
+{
+    try {
         $user = Auth::user();
         if (!$user) {
             return response()->json([
                 'status'  => 'failed',
                 'message' => 'Token tidak valid atau kadaluarsa.',
                 'data'    => null,
-            ], 401);
+            ], 422);
         }
 
         $filters = [
             'kapasitas' => $request->query('kapasitas'),
             'status'    => $request->query('status'),
             'page'      => $request->query('page', 1),
+            'per_page'  => $request->query('per_page', 10),
         ];
 
         // ✅ Validasi STATUS (harus aktif / non-aktif)
@@ -43,7 +45,7 @@ public function index(Request $request)
                 'status'  => 'failed',
                 'message' => 'Statusnya wajib AKTIF dan NON-AKTIF',
                 'data'    => null,
-            ], 403);
+            ], 422);
         }
 
         // ✅ Validasi KAPASITAS (harus angka)
@@ -52,11 +54,15 @@ public function index(Request $request)
                 'status'  => 'failed',
                 'message' => 'Data tidak valid, kapasitas harus ditulis dengan angka',
                 'data'    => null,
-            ], 403);
+            ], 422);
         }
 
-        // ✅ Ambil data room dengan pagination (default 10 per halaman)
-        $perPage = 10;
+        // ✅ Gunakan per_page dari request jika dikirim, default 10
+        $perPage = is_numeric($filters['per_page']) && $filters['per_page'] > 0
+            ? (int) $filters['per_page']
+            : 10;
+
+        // ✅ Ambil data room dengan pagination
         $rooms = \App\Models\Room::query()
             ->when($filters['kapasitas'], fn($q) => $q->where('kapasitas', $filters['kapasitas']))
             ->when($filters['status'], fn($q) => $q->where('status', $filters['status']))
@@ -81,8 +87,23 @@ public function index(Request $request)
             'status'  => 'success',
             'message' => 'Data ruangan berhasil ditampilkan',
             'data'    => $resource,
-        ]);
+            'meta'    => [
+                'current_page' => $rooms->currentPage(),
+                'per_page'     => $rooms->perPage(),
+                'total'        => $rooms->total(),
+                'last_page'    => $rooms->lastPage(),
+                'from'         => $rooms->firstItem(),
+                'to'           => $rooms->lastItem(),
+            ]
+        ], 200);
+    } catch (\Throwable $th) {
+        return response()->json([
+            'status'  => 'failed',
+            'message' => 'Terjadi kesalahan server: ' . $th->getMessage(),
+            'data'    => null,
+        ], 500);
     }
+}
 
     /**
      * GET /rooms/{id}

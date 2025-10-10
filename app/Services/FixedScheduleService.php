@@ -20,7 +20,7 @@ class FixedScheduleService
 {
     try {
         $query = FixedSchedule::with(['room', 'user'])
-            ->orderBy('id', 'asc'); // biar urut stabil (kayak reservasi)
+        ->orderBy('id', 'asc'); // biar urut stabil (kayak reservasi)
 
         // 🏢 Filter ruangan
         if (!empty($filters['room_id'])) {

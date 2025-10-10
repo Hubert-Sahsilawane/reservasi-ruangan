@@ -31,117 +31,120 @@ class FixedScheduleController extends Controller
     public function index(Request $request)
 {
     $user = Auth::user();
+    if (! $user) {
+        return response()->json([
+            'status' => 'failed',
+            'message' => 'Token tidak valid atau kadaluarsa.'
+        ], 401);
+    }
 
+    // Ambil filter
     $filters = [
-        'room_id'       => $request->query('room_id'),
-        'tanggal'       => $request->query('tanggal'),
-        'waktu_mulai'   => $request->query('waktu_mulai'),
-        'waktu_selesai' => $request->query('waktu_selesai'),
+        'page'          => $request->query('page', 1),
+        'per_page'      => $request->query('per_page', 10),
+        'tanggal'       => $request->query('tanggal', null),
+        'hari'          => $request->query('hari', null),
+        'waktu_mulai'   => $request->query('waktu_mulai', null),
+        'waktu_selesai' => $request->query('waktu_selesai', null),
     ];
 
-    // 🧭 Pagination
-    $page = (int) max(1, $request->query('page', 1));
-    $perPage = (int) $request->query('per_page', 10);
-    $perPage = min(10, max(1, $perPage));
+    // Pagination setup
+    $page = max(1, (int) $filters['page']);
+    $perPage = (int) $filters['per_page'];
+    if ($perPage <= 0) $perPage = 10;
+    $perPage = min(10, $perPage); // batas maksimum 10 per halaman
 
-    /* --------------------------------------------------------------------------
-       VALIDASI INPUT
-    -------------------------------------------------------------------------- */
+    // Validasi hari, status, tanggal, waktu
+    $validDays = ['senin','selasa','rabu','kamis','jumat','sabtu','minggu'];
+    if (!empty($filters['hari']) && !in_array(strtolower($filters['hari']), $validDays)) {
+        return response()->json([
+            'status'  => 'failed',
+            'message' => 'Hari tidak valid. Gunakan Senin sampai Minggu.',
+            'data'    => null
+        ], 422);
+    }
 
-    // ✅ Validasi ROOM ID
-    if (!empty($filters['room_id'])) {
-        $roomExists = \App\Models\Room::find($filters['room_id']);
-        if (!$roomExists) {
+    if (!empty($filters['tanggal'])) {
+        try {
+            \Carbon\Carbon::createFromFormat('Y-m-d', $filters['tanggal']);
+        } catch (\Throwable $e) {
             return response()->json([
                 'status'  => 'failed',
-                'message' => 'Ruangan tidak ditemukan.',
-                'data'    => null,
-            ], 404);
+                'message' => 'Tanggal tidak valid. Format harus YYYY-MM-DD.',
+                'data'    => null
+            ], 422);
         }
     }
 
-    // ✅ Validasi TANGGAL (optional, tapi jika diisi harus format valid)
-    if (!empty($filters['tanggal']) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $filters['tanggal'])) {
-        return response()->json([
-            'status'  => 'failed',
-            'message' => 'Tanggal tidak valid.',
-            'data'    => null,
-        ], 403);
-    }
-
-    // ✅ Validasi WAKTU MULAI & SELESAI (harus berpasangan)
-    if (!empty($filters['waktu_mulai']) && empty($filters['waktu_selesai'])) {
-        return response()->json([
-            'status'  => 'failed',
-            'message' => 'Waktu selesai harus diisi juga.',
-            'data'    => null,
-        ], 403);
-    }
-
-    if (empty($filters['waktu_mulai']) && !empty($filters['waktu_selesai'])) {
-        return response()->json([
-            'status'  => 'failed',
-            'message' => 'Waktu mulai harus diisi juga.',
-            'data'    => null,
-        ], 403);
-    }
-
-    // ✅ Validasi FORMAT JAM (jika keduanya diisi)
-    $timeRegex = '/^(?:[01]\d|2[0-3]):[0-5]\d$/';
-    if (!empty($filters['waktu_mulai']) && !preg_match($timeRegex, $filters['waktu_mulai'])) {
-        return response()->json([
-            'status'  => 'failed',
-            'message' => 'Format waktu mulai tidak valid (gunakan format HH:mm).',
-            'data'    => null,
-        ], 403);
+    $timeRegex = '/^([01]\d|2[0-3]):[0-5]\d$/';
+    if (!empty($filters['waktu_mulai'])) {
+        if (!preg_match($timeRegex, $filters['waktu_mulai'])) {
+            return response()->json([
+                'status'  => 'failed',
+                'message' => 'Waktu mulai tidak valid (format HH:MM).',
+                'data'    => null
+            ], 422);
+        }
+        if (empty($filters['waktu_selesai'])) {
+            return response()->json([
+                'status'  => 'failed',
+                'message' => 'Waktu selesai harus diisi juga.',
+                'data'    => null
+            ], 422);
+        }
     }
 
     if (!empty($filters['waktu_selesai']) && !preg_match($timeRegex, $filters['waktu_selesai'])) {
         return response()->json([
             'status'  => 'failed',
-            'message' => 'Format waktu selesai tidak valid (gunakan format HH:mm).',
-            'data'    => null,
-        ], 403);
+            'message' => 'Waktu selesai tidak valid (format HH:MM).',
+            'data'    => null
+        ], 422);
     }
 
-    /* --------------------------------------------------------------------------
-       QUERY DATA
-    -------------------------------------------------------------------------- */
+    // -------------------------
+    // QUERY + PAGINATION
+    // -------------------------
     try {
-        $query = \App\Models\FixedSchedule::with(['room', 'user'])
-            ->when(!empty($filters['room_id']), fn($q) => $q->where('room_id', $filters['room_id']))
-            ->when(!empty($filters['tanggal']), fn($q) => $q->whereDate('tanggal', $filters['tanggal']))
-            ->when(!empty($filters['waktu_mulai']), fn($q) => $q->whereTime('waktu_mulai', '>=', $filters['waktu_mulai']))
-            ->when(!empty($filters['waktu_selesai']), fn($q) => $q->whereTime('waktu_selesai', '<=', $filters['waktu_selesai']))
-            ->orderBy('id', 'asc');
+        $query = \App\Models\FixedSchedule::query()
+            ->with(['room', 'user'])
+            ->when($user->hasRole('karyawan'), fn($q) => $q->where('user_id', $user->id))
+            ->orderBy('id', 'asc')
+            ->when($filters['tanggal'], fn($q) => $q->whereDate('tanggal', $filters['tanggal']))
+            ->when($filters['hari'], fn($q) => $q->where('hari', $filters['hari']))
+            ->when($filters['waktu_mulai'], fn($q) => $q->whereTime('waktu_mulai', '>=', $filters['waktu_mulai']))
+            ->when($filters['waktu_selesai'], fn($q) => $q->whereTime('waktu_selesai', '<=', $filters['waktu_selesai']));
 
-        $schedules = $query->paginate($perPage, ['*'], 'page', $page)->appends($request->query());
+        $fixedSchedules = $query->paginate($perPage, ['*'], 'page', $page)->appends($request->query());
 
-        if ($schedules->isEmpty()) {
-            return response()->json([
-                'status'  => 'success',
-                'message' => 'Data tidak ditemukan.',
-                'data'    => null,
-            ]);
-        }
-
+        // Resource sesuai role
         $resource = $user->hasRole('admin')
-            ? \App\Http\Resources\Admin\FixedScheduleResource::collection($schedules)
-            : \App\Http\Resources\Karyawan\FixedScheduleResource::collection($schedules);
+            ? \App\Http\Resources\Admin\FixedScheduleResource::collection($fixedSchedules->items())
+            : \App\Http\Resources\Karyawan\FixedScheduleResource::collection($fixedSchedules->items());
 
         return response()->json([
             'status'  => 'success',
-            'message' => 'Daftar jadwal tetap berhasil diambil.',
+            'message' => 'Data jadwal tetap berhasil diambil.',
             'data'    => $resource,
-        ]);
+            'meta' => [
+                'current_page' => $fixedSchedules->currentPage(),
+                'per_page'     => $fixedSchedules->perPage(),
+                'total'        => $fixedSchedules->total(),
+                'last_page'    => $fixedSchedules->lastPage(),
+                'from'         => $fixedSchedules->firstItem(),
+                'to'           => $fixedSchedules->lastItem(),
+            ],
+        ], 200);
+
     } catch (\Throwable $th) {
         return response()->json([
-            'status'  => 'failed',
+            'status' => 'failed',
             'message' => 'Terjadi kesalahan server: ' . $th->getMessage(),
-            'data'    => null,
+            'data' => null
         ], 500);
     }
 }
+
 
 
     /* -------------------------------------------------------------------------- */
