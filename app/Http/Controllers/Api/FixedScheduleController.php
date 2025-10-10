@@ -66,7 +66,7 @@ class FixedScheduleController extends Controller
             'status'  => 'failed',
             'message' => 'Tanggal tidak valid.',
             'data'    => null,
-        ], 400);
+        ], 403);
     }
 
     // ✅ Validasi WAKTU MULAI & SELESAI (harus berpasangan)
@@ -75,7 +75,7 @@ class FixedScheduleController extends Controller
             'status'  => 'failed',
             'message' => 'Waktu selesai harus diisi juga.',
             'data'    => null,
-        ], 400);
+        ], 403);
     }
 
     if (empty($filters['waktu_mulai']) && !empty($filters['waktu_selesai'])) {
@@ -83,7 +83,7 @@ class FixedScheduleController extends Controller
             'status'  => 'failed',
             'message' => 'Waktu mulai harus diisi juga.',
             'data'    => null,
-        ], 400);
+        ], 403);
     }
 
     // ✅ Validasi FORMAT JAM (jika keduanya diisi)
@@ -93,7 +93,7 @@ class FixedScheduleController extends Controller
             'status'  => 'failed',
             'message' => 'Format waktu mulai tidak valid (gunakan format HH:mm).',
             'data'    => null,
-        ], 400);
+        ], 403);
     }
 
     if (!empty($filters['waktu_selesai']) && !preg_match($timeRegex, $filters['waktu_selesai'])) {
@@ -101,7 +101,7 @@ class FixedScheduleController extends Controller
             'status'  => 'failed',
             'message' => 'Format waktu selesai tidak valid (gunakan format HH:mm).',
             'data'    => null,
-        ], 400);
+        ], 403);
     }
 
     /* --------------------------------------------------------------------------

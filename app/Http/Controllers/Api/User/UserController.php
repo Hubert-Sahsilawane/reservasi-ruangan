@@ -35,7 +35,7 @@ class UserController extends Controller
                 'status'  => 'failed',
                 'message' => 'Role tidak ada.',
                 'data'    => null,
-            ], 400);
+            ], 403);
         }
     }
 
@@ -53,7 +53,7 @@ class UserController extends Controller
         return response()->json([
             'status'  => 'success',
             'message' => 'Data tidak ditemukan.',
-            'data'    => [],
+            'data'    => null,
         ]);
     }
 

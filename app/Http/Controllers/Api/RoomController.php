@@ -43,7 +43,7 @@ public function index(Request $request)
                 'status'  => 'failed',
                 'message' => 'Statusnya wajib AKTIF dan NON-AKTIF',
                 'data'    => null,
-            ], 400);
+            ], 403);
         }
 
         // ✅ Validasi KAPASITAS (harus angka)
@@ -52,7 +52,7 @@ public function index(Request $request)
                 'status'  => 'failed',
                 'message' => 'Data tidak valid, kapasitas harus ditulis dengan angka',
                 'data'    => null,
-            ], 400);
+            ], 403);
         }
 
         // ✅ Ambil data room dengan pagination (default 10 per halaman)

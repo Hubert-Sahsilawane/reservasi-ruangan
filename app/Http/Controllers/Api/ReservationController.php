@@ -75,7 +75,7 @@ class ReservationController extends Controller
                 'status'  => 'failed',
                 'message' => 'Hari tidak valid. Gunakan Senin sampai Minggu.',
                 'data'    => null
-            ], 400);
+            ], 403);
         }
     }
 
@@ -87,7 +87,7 @@ class ReservationController extends Controller
                 'status'  => 'failed',
                 'message' => 'Status tidak valid. Gunakan approved atau rejected.',
                 'data'    => null
-            ], 400);
+            ], 403);
         }
     }
 
@@ -103,7 +103,7 @@ class ReservationController extends Controller
                 'status'  => 'failed',
                 'message' => 'Tanggal tidak valid. Format harus YYYY-MM-DD.',
                 'data'    => null
-            ], 400);
+            ], 403);
         }
     }
 
@@ -115,14 +115,14 @@ class ReservationController extends Controller
                 'status'  => 'failed',
                 'message' => 'Waktu mulai tidak valid. Format HH:MM.',
                 'data'    => null
-            ], 400);
+            ], 403);
         }
         if (empty($filters['waktu_selesai'])) {
             return response()->json([
                 'status'  => 'failed',
                 'message' => 'Waktu selesai harus diisi juga.',
                 'data'    => null
-            ], 400);
+            ], 403);
         }
     }
     if (!empty($filters['waktu_selesai']) && !preg_match($timeRegex, $filters['waktu_selesai'])) {
@@ -130,7 +130,7 @@ class ReservationController extends Controller
             'status'  => 'failed',
             'message' => 'Waktu selesai tidak valid. Format HH:MM.',
             'data'    => null
-        ], 400);
+        ], 403);
     }
 
     // -------------------------
