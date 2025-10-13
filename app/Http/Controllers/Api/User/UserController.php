@@ -52,7 +52,7 @@ class UserController extends Controller
             if (!in_array(strtolower($filters['role']), $validRoles)) {
                 return response()->json([
                     'status'  => 'failed',
-                    'message' => 'Role tidak ada. Gunakan "admin", "superadmin", atau "karyawan".',
+                    'message' => 'Role tidak ada. Gunakan "admin", atau "karyawan".',
                     'data'    => null,
                 ], 422);
             }
