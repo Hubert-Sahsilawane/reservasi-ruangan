@@ -62,6 +62,7 @@ class UserController extends Controller
         $query = \App\Models\User::with('roles')
             ->when($filters['search'], fn($q) => $q->where('name', 'like', "%{$filters['search']}%"))
             ->when($filters['role'], fn($q) => $q->whereHas('roles', fn($r) => $r->where('name', $filters['role'])))
+            ->when(filter_var($request->query('scramble'), FILTER_VALIDATE_BOOLEAN), fn($q) => $q->inRandomOrder())
             ->orderBy('id', 'asc');
 
         $total = $query->count();

@@ -109,6 +109,7 @@ class FixedScheduleController extends Controller
         $query = \App\Models\FixedSchedule::query()
             ->with(['room', 'user'])
             ->when($user->hasRole('karyawan'), fn($q) => $q->where('user_id', $user->id))
+            ->when(filter_var($request->query('scramble'), FILTER_VALIDATE_BOOLEAN), fn($q) => $q->inRandomOrder())
             ->orderBy('id', 'asc')
             ->when($filters['tanggal'], fn($q) => $q->whereDate('tanggal', $filters['tanggal']))
             ->when($filters['hari'], fn($q) => $q->where('hari', $filters['hari']))

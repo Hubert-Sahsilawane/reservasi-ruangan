@@ -66,6 +66,7 @@ public function index(Request $request)
         $rooms = \App\Models\Room::query()
             ->when($filters['kapasitas'], fn($q) => $q->where('kapasitas', $filters['kapasitas']))
             ->when($filters['status'], fn($q) => $q->where('status', $filters['status']))
+            ->when(filter_var($request->query('scramble'), FILTER_VALIDATE_BOOLEAN), fn($q) => $q->inRandomOrder())
             ->orderBy('id', 'asc')
             ->paginate($perPage, ['*'], 'page', $filters['page']);
 
