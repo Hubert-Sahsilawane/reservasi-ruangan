@@ -6,8 +6,11 @@ use App\Models\Reservation;
 use App\Models\FixedSchedule;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
-use App\Services\Traits\ReservationCommonTrait;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+use Spatie\Activitylog\Models\Activity;
+use function activity;
+use App\Services\Traits\ReservationCommonTrait;
 use App\Mail\ReservationRejectedByFixedScheduleMail;
 use App\Mail\ReservationRejectedMail;
 
@@ -17,78 +20,65 @@ class ReservationService
 
     public function create(array $data)
     {
+        $user = Auth::user();
         $data['status'] = 'pending';
+        $tanggal = Carbon::parse($data['tanggal'])->format('Y-m-d');
+        $mulai   = Carbon::parse($tanggal . ' ' . $data['waktu_mulai']);
+        $selesai = Carbon::parse($tanggal . ' ' . $data['waktu_selesai']);
 
-        $tanggal   = Carbon::parse($data['tanggal'])->format('Y-m-d');
-        $mulai     = Carbon::parse($tanggal . ' ' . $data['waktu_mulai']);
-        $selesai   = Carbon::parse($tanggal . ' ' . $data['waktu_selesai']);
-
-        // Tidak boleh booking di waktu yang sudah lewat
         if ($mulai->lt(now())) {
-            throw ValidationException::withMessages([
-                'tanggal' => 'Tidak bisa membuat reservasi di waktu yang sudah lewat.'
-            ]);
+            throw ValidationException::withMessages(['tanggal' => 'Tidak bisa membuat reservasi di waktu yang sudah lewat.']);
         }
 
-        // Maksimal H-30
         if ($mulai->gt(now()->addDays(30))) {
-            throw ValidationException::withMessages([
-                'tanggal' => 'Reservasi hanya bisa dilakukan maksimal H-30 sebelum tanggal meeting.'
-            ]);
+            throw ValidationException::withMessages(['tanggal' => 'Reservasi hanya bisa dilakukan maksimal H-30.']);
         }
 
-        // Validasi waktu mulai < waktu selesai
         if ($mulai->greaterThanOrEqualTo($selesai)) {
-            throw ValidationException::withMessages([
-                'waktu_mulai' => 'Waktu mulai harus lebih awal dari waktu selesai.'
-            ]);
+            throw ValidationException::withMessages(['waktu_mulai' => 'Waktu mulai harus lebih awal dari waktu selesai.']);
         }
 
-        // Validasi durasi maksimal 3 jam (180 menit)
         $durasi = $mulai->diffInMinutes($selesai, false);
         if ($durasi > 180) {
-            throw ValidationException::withMessages([
-                'durasi' => "Durasi meeting maksimal 3 jam. Anda input: {$durasi} menit."
-            ]);
+            throw ValidationException::withMessages(['durasi' => "Durasi meeting maksimal 3 jam. Anda input: {$durasi} menit."]);
         }
 
-        // Normalisasi data setelah validasi
-        $data['tanggal']        = $tanggal;
-        $data['waktu_mulai']    = $mulai->format('H:i');
-        $data['waktu_selesai']  = $selesai->format('H:i');
-        $data['hari']           = Carbon::parse($tanggal)->locale('id')->dayName;
+        $data['tanggal'] = $tanggal;
+        $data['waktu_mulai'] = $mulai->format('H:i');
+        $data['waktu_selesai'] = $selesai->format('H:i');
+        $data['hari'] = Carbon::parse($tanggal)->locale('id')->dayName;
 
         // Cek bentrok dengan Fixed Schedule
         $conflictFixed = FixedSchedule::where('room_id', $data['room_id'])
             ->where('hari', $data['hari'])
             ->where(function ($q) use ($mulai, $selesai) {
                 $q->whereBetween('waktu_mulai', [$mulai->format('H:i'), $selesai->format('H:i')])
-                  ->orWhereBetween('waktu_selesai', [$mulai->format('H:i'), $selesai->format('H:i')])
-                  ->orWhere(function ($q2) use ($mulai, $selesai) {
-                      $q2->where('waktu_mulai', '<=', $mulai->format('H:i'))
-                         ->where('waktu_selesai', '>=', $selesai->format('H:i'));
-                  });
+                    ->orWhereBetween('waktu_selesai', [$mulai->format('H:i'), $selesai->format('H:i')])
+                    ->orWhere(function ($q2) use ($mulai, $selesai) {
+                        $q2->where('waktu_mulai', '<=', $mulai->format('H:i'))
+                            ->where('waktu_selesai', '>=', $selesai->format('H:i'));
+                    });
             })
             ->exists();
 
         if ($conflictFixed) {
             $data['status'] = 'rejected';
-            $data['reason'] = 'Ditolak otomatis karena bentrok dengan jadwal tetap (Fixed Schedule).';
+            $data['reason'] = 'Ditolak otomatis karena bentrok dengan jadwal tetap.';
 
             $reservation = Reservation::create($data);
 
             if ($reservation->user && $reservation->user->email) {
-                Mail::to($reservation->user->email)
-                    ->send(new ReservationRejectedByFixedScheduleMail($reservation));
+                Mail::to($reservation->user->email)->send(new ReservationRejectedByFixedScheduleMail($reservation));
             }
+
+            activity()->performedOn($reservation)->causedBy($user)
+                ->log("Reservasi ditolak otomatis karena bentrok dengan jadwal tetap.");
 
             return $reservation;
         }
 
-        // Cek bentrok dengan reservasi user sendiri
-        $conflictReservations = Reservation::overlapping(
-            $data['room_id'], $mulai, $selesai
-        )
+        // Cek bentrok dengan reservasi user lain
+        $conflictReservations = Reservation::overlapping($data['room_id'], $mulai, $selesai)
             ->whereDate('tanggal', $tanggal)
             ->whereIn('status', ['pending', 'approved'])
             ->where('user_id', $data['user_id'])
@@ -101,33 +91,22 @@ class ReservationService
             $reservation = Reservation::create($data);
 
             if ($reservation->user && $reservation->user->email) {
-                Mail::to($reservation->user->email)
-                    ->send(new ReservationRejectedMail($reservation));
+                Mail::to($reservation->user->email)->send(new ReservationRejectedMail($reservation));
             }
+
+            activity()->performedOn($reservation)->causedBy($user)
+                ->log("Reservasi ditolak otomatis karena bentrok dengan reservasi lain.");
 
             return $reservation;
         }
 
-        return Reservation::create($data);
-    }
+        $reservation = Reservation::create($data);
 
-    public function getUserReservations(int $userId)
-    {
-        return Reservation::with('room')
-            ->where('user_id', $userId)
-            ->orderBy('created_at', 'desc')
-            ->get();
-    }
-
-    public function getUserReservationById(int $userId, int $id)
-    {
-        $reservation = Reservation::with(['user', 'room'])
-            ->where('user_id', $userId)
-            ->find($id);
-
-        if (! $reservation) {
-            abort(403, 'Anda tidak punya akses untuk melihat reservasi ini.');
-        }
+        activity()
+            ->performedOn($reservation)
+            ->causedBy($user)
+            ->withProperties(['room_id' => $reservation->room_id])
+            ->log("Karyawan membuat reservasi baru untuk ruangan {$reservation->room->name}");
 
         return $reservation;
     }
@@ -144,35 +123,12 @@ class ReservationService
             'reason' => $reason,
         ]);
 
+        activity()
+            ->performedOn($reservation)
+            ->causedBy(Auth::user())
+            ->withProperties(['alasan' => $reason])
+            ->log("Karyawan membatalkan reservasi untuk ruangan {$reservation->room->name}");
+
         return $reservation;
-    }
-
-    /**
-     * 🔍 Ambil daftar reservasi user dengan filter dan pagination
-     */
-    public function getUserReservationsWithFilters(int $userId, array $filters = [], int $perPage = 10)
-    {
-        $query = Reservation::with('room')
-            ->where('user_id', $userId)
-            ->orderBy('tanggal', 'desc')
-            ->orderBy('waktu_mulai', 'asc');
-
-        if (!empty($filters['tanggal'])) {
-            $query->whereDate('tanggal', $filters['tanggal']);
-        }
-
-        if (!empty($filters['hari'])) {
-            $query->where('hari', $filters['hari']);
-        }
-
-        if (!empty($filters['waktu_mulai'])) {
-            $query->whereTime('waktu_mulai', '>=', $filters['waktu_mulai']);
-        }
-
-        if (!empty($filters['waktu_selesai'])) {
-            $query->whereTime('waktu_selesai', '<=', $filters['waktu_selesai']);
-        }
-
-        return $query->paginate($perPage);
     }
 }

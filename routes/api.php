@@ -40,28 +40,28 @@ Route::middleware('auth:api')->group(function () {
      * ===============================
      */
     Route::middleware('role:admin|karyawan')->group(function () {
+
         /**
          * Rooms
-         * Filter & Pagination tersedia
-         * Params: ?search=...&status=aktif&per_page=...
          */
         Route::get('rooms', [RoomController::class, 'index'])->name('rooms.list');
         Route::get('rooms/{id}', [RoomController::class, 'show'])->name('rooms.detail');
 
         /**
          * Fixed Schedules
-         * Filter & Pagination tersedia
-         * Params: ?search=...&room_id=...&tanggal=...&per_page=...
          */
         Route::get('fixed-schedules', [FixedScheduleController::class, 'index'])->name('fixed-schedules.index');
         Route::get('fixed-schedules/{id}', [FixedScheduleController::class, 'show'])->name('fixed-schedules.detail');
 
         /**
          * Reservations
-         * Filter & Pagination tersedia
-         * Params: ?status=approved&tanggal=2025-10-07&per_page=...
          */
         Route::get('reservations', [ReservationController::class, 'index'])->name('reservations.list');
+
+        // ✅ Activity Logs (letakkan di atas {id})
+        Route::get('reservations/activity-logs', [ReservationController::class, 'activityLogs'])
+            ->name('reservations.activity-logs');
+
         Route::get('reservations/{id}', [ReservationController::class, 'show'])->name('reservations.detail');
     });
 
@@ -103,5 +103,8 @@ Route::middleware('auth:api')->group(function () {
         /** Reservations (buat & cancel) */
         Route::post('reservations', [ReservationController::class, 'store'])->name('reservations.create');
         Route::put('reservations/{id}/cancel', [ReservationController::class, 'cancel'])->name('reservations.cancel');
+
+        /** Riwayat Reservasi (History) */
+        Route::get('reservations/history', [ReservationController::class, 'history'])->name('reservations.history');
     });
 });

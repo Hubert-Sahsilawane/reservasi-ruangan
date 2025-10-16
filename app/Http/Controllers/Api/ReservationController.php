@@ -7,6 +7,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
+use Spatie\Activitylog\Models\Activity;
+use function activity;
+
+// Models
+use App\Models\Reservation;
 
 // Services
 use App\Services\Admin\ReservationService as AdminReservationService;
@@ -40,166 +45,229 @@ class ReservationController extends Controller
     /*  GET /reservations                                                        */
     /* -------------------------------------------------------------------------- */
     public function index(Request $request)
-{
-    $user = Auth::user();
-    if (! $user) {
-        return response()->json([
-            'status' => 'failed',
-            'message' => 'Token tidak valid atau kadaluarsa.'
-        ], 401);
-    }
+    {
+        $user = Auth::user();
+        if (! $user) {
+            return response()->json([
+                'status' => 'failed',
+                'message' => 'Token tidak valid atau kadaluarsa.'
+            ], 401);
+        }
 
-    // Ambil filter
-    $filters = [
-        'page'          => $request->query('page', 1),
-        'per_page'      => $request->query('per_page', 10),
-        'tanggal'       => $request->query('tanggal', null),
-        'hari'          => $request->query('hari', null),
-        'waktu_mulai'   => $request->query('waktu_mulai', null),
-        'waktu_selesai' => $request->query('waktu_selesai', null),
-        'status'        => $request->query('status', null),
-    ];
+        $filters = [
+            'page'          => $request->query('page', 1),
+            'per_page'      => $request->query('per_page', 10),
+            'tanggal'       => $request->query('tanggal', null),
+            'hari'          => $request->query('hari', null),
+            'waktu_mulai'   => $request->query('waktu_mulai', null),
+            'waktu_selesai' => $request->query('waktu_selesai', null),
+            'status'        => $request->query('status', null),
+        ];
 
-    // Pagination setup
-    $page = max(1, (int) $request->query('page', 1));
-    $perPage = (int) $request->query('per_page', 10);
-    if ($perPage <= 0) $perPage = 10;
-    $perPage = min(10, $perPage); // batas maksimum 10 per halaman
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = (int) $request->query('per_page', 10);
+        if ($perPage <= 0) $perPage = 10;
+        $perPage = min(10, $perPage);
 
-    // Validasi hari, status, tanggal, waktu
-    $validDays = ['senin','selasa','rabu','kamis','jumat','sabtu','minggu'];
-    if (!empty($filters['hari']) && !in_array(strtolower($filters['hari']), $validDays)) {
-        return response()->json([
-            'status'  => 'failed',
-            'message' => 'Hari tidak valid. Gunakan Senin sampai Minggu.',
-            'data'    => null
-        ], 422);
-    }
+        $validDays = ['senin','selasa','rabu','kamis','jumat','sabtu','minggu'];
+        if (!empty($filters['hari']) && !in_array(strtolower($filters['hari']), $validDays)) {
+            return response()->json([
+                'status'  => 'failed',
+                'message' => 'Hari tidak valid. Gunakan Senin sampai Minggu.',
+                'data'    => null
+            ], 422);
+        }
 
-    $validStatus = ['approved', 'rejected', 'pending'];
-    if (!empty($filters['status']) && !in_array(strtolower($filters['status']), $validStatus)) {
-        return response()->json([
-            'status'  => 'failed',
-            'message' => 'Status tidak valid. Gunakan approved / rejected / pending.',
-            'data'    => null
-        ], 422);
-    }
+        $validStatus = ['approved', 'rejected', 'pending'];
+        if (!empty($filters['status']) && !in_array(strtolower($filters['status']), $validStatus)) {
+            return response()->json([
+                'status'  => 'failed',
+                'message' => 'Status tidak valid. Gunakan approved / rejected / pending.',
+                'data'    => null
+            ], 422);
+        }
 
-    if (!empty($filters['tanggal'])) {
+        if (!empty($filters['tanggal'])) {
+            try {
+                $dt = Carbon::createFromFormat('Y-m-d', $filters['tanggal']);
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'status'  => 'failed',
+                    'message' => 'Tanggal tidak valid. Format harus YYYY-MM-DD.',
+                    'data'    => null
+                ], 422);
+            }
+        }
+
+        $timeRegex = '/^([01]\d|2[0-3]):[0-5]\d$/';
+        if (!empty($filters['waktu_mulai'])) {
+            if (!preg_match($timeRegex, $filters['waktu_mulai'])) {
+                return response()->json([
+                    'status'  => 'failed',
+                    'message' => 'Waktu mulai tidak valid (format HH:MM).',
+                    'data'    => null
+                ], 422);
+            }
+            if (empty($filters['waktu_selesai'])) {
+                return response()->json([
+                    'status'  => 'failed',
+                    'message' => 'Waktu selesai harus diisi juga.',
+                    'data'    => null
+                ], 422);
+            }
+        }
+        if (!empty($filters['waktu_selesai']) && !preg_match($timeRegex, $filters['waktu_selesai'])) {
+            return response()->json([
+                'status'  => 'failed',
+                'message' => 'Waktu selesai tidak valid (format HH:MM).',
+                'data'    => null
+            ], 422);
+        }
+
         try {
-            $dt = \Carbon\Carbon::createFromFormat('Y-m-d', $filters['tanggal']);
-        } catch (\Throwable $e) {
+            $query = Reservation::query()
+                ->when($user->hasRole('karyawan'), fn($q) => $q->where('user_id', $user->id))
+                ->when(filter_var($request->query('scramble'), FILTER_VALIDATE_BOOLEAN), fn($q) => $q->inRandomOrder())
+                ->orderBy('id', 'asc')
+                ->when($filters['tanggal'], fn($q) => $q->whereDate('tanggal', $filters['tanggal']))
+                ->when($filters['hari'], fn($q) => $q->where('hari', $filters['hari']))
+                ->when($filters['waktu_mulai'], fn($q) => $q->whereTime('waktu_mulai', '>=', $filters['waktu_mulai']))
+                ->when($filters['waktu_selesai'], fn($q) => $q->whereTime('waktu_selesai', '<=', $filters['waktu_selesai']))
+                ->when($filters['status'], fn($q) => $q->where('status', $filters['status']));
+
+            $reservations = $query->paginate($perPage, ['*'], 'page', $page)->appends($request->query());
+
             return response()->json([
-                'status'  => 'failed',
-                'message' => 'Tanggal tidak valid. Format harus YYYY-MM-DD.',
-                'data'    => null
-            ], 422);
+                'status'  => 'success',
+                'message' => 'Data reservasi berhasil diambil.',
+                'data'    => $user->hasRole('admin')
+                    ? AdminReservationResource::collection($reservations->items())
+                    : KaryawanReservationResource::collection($reservations->items()),
+                'meta' => [
+                    'current_page' => $reservations->currentPage(),
+                    'per_page'     => $reservations->perPage(),
+                    'total'        => $reservations->total(),
+                    'last_page'    => $reservations->lastPage(),
+                    'from'         => $reservations->firstItem(),
+                    'to'           => $reservations->lastItem(),
+                ],
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 'failed',
+                'message' => 'Terjadi kesalahan server: ' . $th->getMessage(),
+                'data' => null
+            ], 500);
         }
     }
 
-    $timeRegex = '/^([01]\d|2[0-3]):[0-5]\d$/';
-    if (!empty($filters['waktu_mulai'])) {
-        if (!preg_match($timeRegex, $filters['waktu_mulai'])) {
-            return response()->json([
-                'status'  => 'failed',
-                'message' => 'Waktu mulai tidak valid (format HH:MM).',
-                'data'    => null
-            ], 422);
-        }
-        if (empty($filters['waktu_selesai'])) {
-            return response()->json([
-                'status'  => 'failed',
-                'message' => 'Waktu selesai harus diisi juga.',
-                'data'    => null
-            ], 422);
-        }
-    }
-    if (!empty($filters['waktu_selesai']) && !preg_match($timeRegex, $filters['waktu_selesai'])) {
-        return response()->json([
-            'status'  => 'failed',
-            'message' => 'Waktu selesai tidak valid (format HH:MM).',
-            'data'    => null
-        ], 422);
-    }
-
-    // -------------------------
-    // QUERY + PAGINATION
-    // -------------------------
+    public function show($id)
+{
     try {
-        $query = \App\Models\Reservation::query()
-            ->when($user->hasRole('karyawan'), fn($q) => $q->where('user_id', $user->id))
-            ->when(filter_var($request->query('scramble'), FILTER_VALIDATE_BOOLEAN), fn($q) => $q->inRandomOrder())
-            ->orderBy('id', 'asc')
-            ->when($filters['tanggal'], fn($q) => $q->whereDate('tanggal', $filters['tanggal']))
-            ->when($filters['hari'], fn($q) => $q->where('hari', $filters['hari']))
-            ->when($filters['waktu_mulai'], fn($q) => $q->whereTime('waktu_mulai', '>=', $filters['waktu_mulai']))
-            ->when($filters['waktu_selesai'], fn($q) => $q->whereTime('waktu_selesai', '<=', $filters['waktu_selesai']))
-            ->when($filters['status'], fn($q) => $q->where('status', $filters['status']));
+        $user = Auth::user();
+        $reservation = Reservation::findOrFail($id);
 
-        $reservations = $query->paginate($perPage, ['*'], 'page', $page)->appends($request->query());
+        // Batasi akses: karyawan hanya bisa melihat reservasi miliknya sendiri
+        if ($user->hasRole('karyawan') && $reservation->user_id !== $user->id) {
+            return response()->json([
+                'status' => 'failed',
+                'message' => 'Anda tidak memiliki akses ke reservasi ini.',
+            ], 403);
+        }
 
-        // Resource sesuai role
         $resource = $user->hasRole('admin')
-            ? \App\Http\Resources\Admin\ReservationResource::collection($reservations)
-            : \App\Http\Resources\Karyawan\ReservationResource::collection($reservations);
+            ? new AdminReservationResource($reservation)
+            : new KaryawanReservationResource($reservation);
 
         return response()->json([
-    'status'  => 'success',
-    'message' => 'Data reservasi berhasil diambil.',
-    'data'    => $user->hasRole('admin')
-        ? \App\Http\Resources\Admin\ReservationResource::collection($reservations->items())
-        : \App\Http\Resources\Karyawan\ReservationResource::collection($reservations->items()),
-    'meta' => [
-        'current_page' => $reservations->currentPage(),
-        'per_page'     => $reservations->perPage(),
-        'total'        => $reservations->total(),
-        'last_page'    => $reservations->lastPage(),
-        'from'         => $reservations->firstItem(),
-        'to'           => $reservations->lastItem(),
-    ],
-], 200);
-
+            'status' => 'success',
+            'message' => 'Detail reservasi berhasil diambil.',
+            'data' => $resource,
+        ], 200);
 
     } catch (\Throwable $th) {
         return response()->json([
             'status' => 'failed',
             'message' => 'Terjadi kesalahan server: ' . $th->getMessage(),
-            'data' => null
         ], 500);
     }
 }
 
 
-
     /* -------------------------------------------------------------------------- */
-    /*  GET /reservations/{id}                                                   */
+    /*  GET /reservations/history (Karyawan)                                     */
     /* -------------------------------------------------------------------------- */
-    public function show($id)
-    {
+    public function history(Request $request)
+{
+    try {
         $user = Auth::user();
 
-        try {
-            if ($user->hasRole('admin')) {
-                $reservation = $this->adminService->getById($id);
-                return $this->responseSuccess(
-                    'Detail reservasi berhasil diambil.',
-                    new AdminReservationResource($reservation)
-                );
-            }
-
-            if ($user->hasRole('karyawan')) {
-                $reservation = $this->karyawanService->getUserReservationById($user->id, $id);
-                return $this->responseSuccess(
-                    'Detail reservasi berhasil diambil.',
-                    new KaryawanReservationResource($reservation)
-                );
-            }
-
-            return $this->responseError('Anda tidak memiliki akses.', 403);
-        } catch (\Throwable $th) {
-            return $this->responseError('Terjadi kesalahan: ' . $th->getMessage(), 500);
+        // 🔒 Hanya karyawan yang bisa lihat histori miliknya sendiri
+        if (! $user->hasRole('karyawan')) {
+            return response()->json([
+                'status' => 'failed',
+                'message' => 'Hanya karyawan yang dapat melihat riwayat reservasi.',
+                'data' => null,
+            ], 403);
         }
+
+        $perPage = (int) $request->query('per_page', 10);
+        $page    = max(1, (int) $request->query('page', 1));
+
+        $reservations = Reservation::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Riwayat reservasi berhasil diambil.',
+            'data'    => KaryawanReservationResource::collection($reservations->items()),
+            'meta'    => [
+                'current_page' => $reservations->currentPage(),
+                'per_page'     => $reservations->perPage(),
+                'total'        => $reservations->total(),
+                'last_page'    => $reservations->lastPage(),
+                'from'         => $reservations->firstItem(),
+                'to'           => $reservations->lastItem(),
+            ],
+        ], 200);
+
+    } catch (\Throwable $th) {
+        return response()->json([
+            'status'  => 'failed',
+            'message' => 'Terjadi kesalahan server: ' . $th->getMessage(),
+        ], 500);
     }
+}
+
+    /* -------------------------------------------------------------------------- */
+    /*  GET /reservations/activity-logs                                          */
+    /* -------------------------------------------------------------------------- */
+    public function activityLogs(Request $request)
+{
+    $user = Auth::user();
+
+    $query = Activity::query()
+        ->where('log_name', 'reservasi')
+        ->when($user->hasRole('karyawan'), fn($q) => $q->where('causer_id', $user->id))
+        ->orderBy('created_at', 'desc');
+
+    $logs = $query->paginate(10);
+
+    return response()->json([
+        'status'  => 'success',
+        'message' => 'Riwayat aktivitas reservasi berhasil diambil.',
+        'data'    => $logs->items(),
+        'meta'    => [
+            'current_page' => $logs->currentPage(),
+            'per_page'     => $logs->perPage(),
+            'total'        => $logs->total(),
+            'last_page'    => $logs->lastPage(),
+            'from'         => $logs->firstItem(),
+            'to'           => $logs->lastItem(),
+        ],
+    ]);
+}
 
     /* -------------------------------------------------------------------------- */
     /*  POST /karyawan/reservations                                              */
@@ -223,6 +291,12 @@ class ReservationController extends Controller
                 'reason'        => $request->reason ?? '-',
             ]);
 
+            activity()
+                ->performedOn($reservation)
+                ->causedBy($user)
+                ->withProperties(['room_id' => $reservation->room_id])
+                ->log("Membuat reservasi baru untuk ruangan {$reservation->room->name}");
+
             return $this->responseSuccess(
                 'Reservasi berhasil dibuat.',
                 new KaryawanReservationResource($reservation)
@@ -236,34 +310,40 @@ class ReservationController extends Controller
     /*  PUT /admin/reservations/{id}/approve                                     */
     /* -------------------------------------------------------------------------- */
     public function update(Request $request, $id)
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
-    if (!$user->hasRole('admin')) {
-        return $this->responseError('Hanya admin yang bisa memperbarui reservasi.', 403);
+        if (!$user->hasRole('admin')) {
+            return $this->responseError('Hanya admin yang bisa memperbarui reservasi.', 403);
+        }
+
+        $status = $request->input('status');
+        $reason = $request->input('reason');
+
+        if (!in_array($status, ['approved', 'rejected'])) {
+            return $this->responseError('Status tidak valid. Gunakan approved atau rejected.', 422);
+        }
+
+        try {
+            $reservation = $this->adminService->updateStatus($id, [
+                'status' => $status,
+                'reason' => $reason ?? ($status === 'approved' ? 'Disetujui oleh admin' : 'Ditolak oleh admin'),
+            ]);
+
+            activity()
+                ->performedOn($reservation)
+                ->causedBy($user)
+                ->withProperties(['status' => $status])
+                ->log("Reservasi diubah status menjadi {$status}");
+
+            return $this->responseSuccess(
+                'Reservasi berhasil diperbarui.',
+                new AdminReservationResource($reservation)
+            );
+        } catch (\Throwable $th) {
+            return $this->responseError('Gagal memperbarui reservasi: ' . $th->getMessage(), 500);
+        }
     }
-
-    $status = $request->input('status');
-    $reason = $request->input('reason');
-
-    if (!in_array($status, ['approved', 'rejected'])) {
-        return $this->responseError('Status tidak valid. Gunakan approved atau rejected.', 422);
-    }
-
-    try {
-        $reservation = $this->adminService->updateStatus($id, [
-            'status' => $status,
-            'reason' => $reason ?? ($status === 'approved' ? 'Disetujui oleh admin' : 'Ditolak oleh admin'),
-        ]);
-
-        return $this->responseSuccess(
-            'Reservasi berhasil diperbarui.',
-            new AdminReservationResource($reservation)
-        );
-    } catch (\Throwable $th) {
-        return $this->responseError('Gagal memperbarui reservasi: ' . $th->getMessage(), 500);
-    }
-}
 
     /* -------------------------------------------------------------------------- */
     /*  DELETE /admin/reservations/{id}                                          */
@@ -277,7 +357,14 @@ class ReservationController extends Controller
         }
 
         try {
+            $reservation = Reservation::findOrFail($id);
             $this->adminService->delete($id);
+
+            activity()
+                ->performedOn($reservation)
+                ->causedBy($user)
+                ->log("Menghapus reservasi untuk ruangan {$reservation->room->name}");
+
             return $this->responseSuccess('Reservasi berhasil dihapus.');
         } catch (\Throwable $th) {
             return $this->responseError('Gagal menghapus reservasi: ' . $th->getMessage(), 500);
@@ -303,6 +390,12 @@ class ReservationController extends Controller
             );
 
             Mail::to("admin@reservasi.com")->send(new ReservationCanceledByUserMail($reservation));
+
+            activity()
+                ->performedOn($reservation)
+                ->causedBy($user)
+                ->withProperties(['alasan' => $request->reason])
+                ->log("Membatalkan reservasi untuk ruangan {$reservation->room->name}");
 
             return $this->responseSuccess(
                 'Reservasi berhasil dibatalkan.',
